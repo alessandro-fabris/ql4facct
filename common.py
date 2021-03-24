@@ -96,7 +96,7 @@ def eval_prevalence_variations_D2(D1, D2, D3, classifier, quantifier, sample_siz
     return compute_bias_error(true_M0_A1, true_M1_A1, estim_M0_A1, estim_M1_A1)
 
 
-def eval_prevalence_variations_D3(D1, D2, D3, classifier, quantifier, nprevs=101):
+def eval_prevalence_variations_D3(D1, D2, D3, classifier, quantifier, sample_size=500, nprevs=101):
     f = classifier.fit(*D1.Xy)
 
     D2_y1, D2_y0 = classify(f, D2)
@@ -109,7 +109,7 @@ def eval_prevalence_variations_D3(D1, D2, D3, classifier, quantifier, nprevs=101
         report = qp.evaluation.artificial_sampling_report(
             quantifier,  # the quantification method
             data,  # the test set on which the method will be evaluated
-            sample_size=qp.environ['SAMPLE_SIZE'],  # indicates the size of samples to be drawn
+            sample_size=sample_size,  # indicates the size of samples to be drawn
             n_prevpoints=nprevs,  # how many prevalence points will be extracted from the interval [0, 1] for each category
             n_repetitions=1,  # number of times each prevalence will be used to generate a test sample
             n_jobs=-1,  # indicates the number of parallel workers (-1 indicates, as in sklearn, all CPUs)

@@ -53,7 +53,7 @@ def eval_prevalence_variations_D1(D1, D2, D3, classifier, quantifier, sample_siz
                           total=nprevs, desc='training quantifiers at prevalence variations in D1'):
         if sample_D1.prevalence().prod() == 0: continue
 
-        f = classifier.fit(*D1.Xy)
+        f = classifier.fit(*sample_D1.Xy)
 
         D2_y1, D2_y0 = classify(f, D2)
         D3_y1, D3_y0 = classify(f, D3)

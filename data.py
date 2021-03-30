@@ -3,7 +3,7 @@ import pandas as pd
 
 
 
-def adultcsv_loader(path, protected_attr, covariates=None, dummies=None, drop_first_dummy=False, remove_missing=True):
+def adultcsv_loader(path, protected_attr, covariates=None, dummies=None, drop_first_dummy=False, remove_missing=True, verbose=True):
 
     if not remove_missing:
         raise NotImplementedError()
@@ -41,10 +41,14 @@ def adultcsv_loader(path, protected_attr, covariates=None, dummies=None, drop_fi
     X = X.values
 
     # process predictor
-    y = qp.data.binarize(df['income'], pos_class='>50K')
+    pos_y_cl = '>50K'
+    y = qp.data.binarize(df['income'], pos_class=pos_y_cl)
 
     # process protected attribute
     A = qp.data.binarize(df[protected_attr], pos_class=privileged[protected_attr])
+
+    if verbose:
+        print(f'A=1 is {privileged[protected_attr]}; y=1 is {pos_y_cl}')
 
     return X, y, A
 

@@ -7,6 +7,14 @@ from copy import deepcopy
 from tqdm import tqdm
 
 
+def get_prevalences(D2_y0, D2_y1, D3_y0, D3_y1):
+    d = {"prev_A1_D2_y1": sum(D2_y1.labels) / len(D2_y1.labels),
+         "prev_A1_D3_y1": sum(D3_y1.labels) / len(D3_y1.labels),
+         "prev_A1_D2_y0": sum(D2_y0.labels) / len(D2_y0.labels),
+         "prev_A1_D3_y0": sum(D3_y0.labels) / len(D3_y0.labels),
+         "perc_pred_y1_D2": len(D2_y1) / len(D2_y0 + D2_y1),
+         "perc_pred_y1_D3": len(D3_y1) / len(D3_y0 + D3_y1)}
+    return d
 
 def split_data(X, y, A, seed):
 
@@ -58,6 +66,12 @@ def eval_prevalence_variations_D1(D1, D2, D3, classifier, quantifier, sample_siz
         D2_y1, D2_y0 = classify(f, D2)
         D3_y1, D3_y0 = classify(f, D3)
 
+        # sanity check: prevs below should be similar, i.e.
+        # prev_A1_D2_y1 \simeq prev_A1_D3_y1,
+        # prev_A1_D2_y0 \simeq prev_A1_D3_y0.
+        # unless we change this, MLPE should be quite accurate
+        dict_prev = get_prevalences(D2_y0, D2_y1, D3_y0, D3_y1)
+
         M1 = deepcopy(quantifier).fit(D2_y1)
         M0 = deepcopy(quantifier).fit(D2_y0)
 
@@ -67,7 +81,7 @@ def eval_prevalence_variations_D1(D1, D2, D3, classifier, quantifier, sample_siz
         true_M1_A1.append(D3_y1.prevalence()[1])
         true_M0_A1.append(D3_y0.prevalence()[1])
 
-    return compute_bias_error(true_M0_A1, true_M1_A1, estim_M0_A1, estim_M1_A1)
+    return true_M0_A1, true_M1_A1, estim_M0_A1, estim_M1_A1
 
 
 def eval_prevalence_variations_D2(D1, D2, D3, classifier, quantifier, sample_size=500, nprevs=101):
@@ -93,10 +107,10 @@ def eval_prevalence_variations_D2(D1, D2, D3, classifier, quantifier, sample_siz
     true_M1_A1, estim_M1_A1 = vary_and_test(quantifier, D2_y1, D3_y1)
     true_M0_A1, estim_M0_A1 = vary_and_test(quantifier, D2_y0, D3_y0)
 
-    return compute_bias_error(true_M0_A1, true_M1_A1, estim_M0_A1, estim_M1_A1)
+    return true_M0_A1, true_M1_A1, estim_M0_A1, estim_M1_A1
 
 
-def eval_prevalence_variations_D3(D1, D2, D3, classifier, quantifier, sample_size=500, nprevs=101):
+def eval_prevalence_variations_D3(D1, D2, D3, classifier, quantifier, sample_size=500, nprevs=101, nreps=2):
     f = classifier.fit(*D1.Xy)
 
     D2_y1, D2_y0 = classify(f, D2)
@@ -105,13 +119,18 @@ def eval_prevalence_variations_D3(D1, D2, D3, classifier, quantifier, sample_siz
     M1 = deepcopy(quantifier).fit(D2_y1)
     M0 = deepcopy(quantifier).fit(D2_y0)
 
+    dict_prev = get_prevalences(D2_y0, D2_y1, D3_y0, D3_y1)
+    print('Original prevalences:')
+    print(f'    prev A1 in D3_y1: = {dict_prev["prev_A1_D3_y1"]:.2f}')
+    print(f'    prev A1 in D3_y0: = {dict_prev["prev_A1_D3_y0"]:.2f}')
+
     def build_ql_report(quantifier, data: LabelledCollection):
         report = qp.evaluation.artificial_sampling_report(
             quantifier,  # the quantification method
             data,  # the test set on which the method will be evaluated
             sample_size=sample_size,  # indicates the size of samples to be drawn
             n_prevpoints=nprevs,  # how many prevalence points will be extracted from the interval [0, 1] for each category
-            n_repetitions=1,  # number of times each prevalence will be used to generate a test sample
+            n_repetitions=nreps,  # number of times each prevalence will be used to generate a test sample
             n_jobs=-1,  # indicates the number of parallel workers (-1 indicates, as in sklearn, all CPUs)
             random_seed=42,  # setting a random seed allows to replicate the test samples across runs
             error_metrics='mae',
@@ -124,4 +143,4 @@ def eval_prevalence_variations_D3(D1, D2, D3, classifier, quantifier, sample_siz
     true_M0_A1, estim_M0_A1 = build_ql_report(M0, D3_y0)
     true_M1_A1, estim_M1_A1 = build_ql_report(M1, D3_y1)
 
-    return compute_bias_error(true_M0_A1, true_M1_A1, estim_M0_A1, estim_M1_A1)
+    return true_M0_A1, true_M1_A1, estim_M0_A1, estim_M1_A1, dict_prev

@@ -7,6 +7,16 @@ from copy import deepcopy
 from tqdm import tqdm
 
 
+def uniform_sampling_with_indices(D: LabelledCollection, size):
+    unif_index = D.uniform_sampling_index(size)
+    return D.sampling_from_index(unif_index), unif_index
+
+
+def natural_sampling_generator_varsize(D: LabelledCollection, sample_sizes, repeats):
+    for _ in range(repeats):
+        for sample_size in sample_sizes:
+            yield uniform_sampling_with_indices(D, sample_size)
+
 def get_prevalences(D2_y0, D2_y1, D3_y0, D3_y1):
     d = {"prev_A1_D2_y1": sum(D2_y1.labels) / len(D2_y1.labels),
          "prev_A1_D3_y1": sum(D3_y1.labels) / len(D3_y1.labels),
@@ -97,7 +107,7 @@ def eval_prevalence_variations_D2(D1, D2, D3, classifier, quantifier, sample_siz
         for sample_D2 in tqdm(D2split.artificial_sampling_generator(sample_size=sample_size, n_prevalences=nprevs),
                               total=nprevs, desc='training quantifiers at prevalence variations in D2'):
             if sample_D2.prevalence().prod() == 0: continue
-            M.fit(sample_D2)
+            M.fit(sample_D2) #TODO: are we sure calling fit() multiple times is fine (i.e. no memory)?
             estim_M_A1.append(M.quantify(D3split.instances)[1])
 
         true_M_A1 = [D3split.prevalence()[1]] * len(estim_M_A1)
@@ -108,6 +118,40 @@ def eval_prevalence_variations_D2(D1, D2, D3, classifier, quantifier, sample_siz
     true_M0_A1, estim_M0_A1 = vary_and_test(quantifier, D2_y0, D3_y0)
 
     return true_M0_A1, true_M1_A1, estim_M0_A1, estim_M1_A1
+
+def eval_size_variations_D2(D1, D2, D3, classifier, quantifier, nreps=10, sample_sizes=None):
+    if sample_sizes is None:
+        min_size = 1000
+        sample_sizes = [int(round(val)) for val in np.geomspace(min_size, len(D2.labels), num=5)]
+    f = classifier.fit(*D1.Xy)
+    D2_y_hat = classifier.predict(D2.instances)
+    D3_y1, D3_y0 = classify(f, D3)
+
+    def vary_and_test(quantifier, D2, D2_y_hat, D3_y0, D3_y1, sample_sizes, nreps):
+        M0 = deepcopy(quantifier)
+        M1 = deepcopy(quantifier)
+        estim_M0_A1 = []
+        estim_M1_A1 = []
+        size_D2 = []
+
+        for sample_D2, sample_idcs in tqdm(natural_sampling_generator_varsize(D2, sample_sizes, nreps),
+                              desc='training quantifiers at size variations in D2'):
+            assert sample_D2.prevalence().prod() != 0
+            sample_D2_y_hat = D2_y_hat[sample_idcs]
+            sample_D2_y0 = LabelledCollection(sample_D2.instances[sample_D2_y_hat == 0], sample_D2.labels[sample_D2_y_hat == 0], n_classes=sample_D2.n_classes)
+            sample_D2_y1 = LabelledCollection(sample_D2.instances[sample_D2_y_hat == 1], sample_D2.labels[sample_D2_y_hat == 1], n_classes=sample_D2.n_classes)
+            M0.fit(sample_D2_y0)  # TODO: are we sure calling fit() multiple times is fine (i.e. no memory)?
+            estim_M0_A1.append(M0.quantify(D3_y0.instances)[1])
+            M1.fit(sample_D2_y1)  #TODO: are we sure calling fit() multiple times is fine (i.e. no memory)?
+            estim_M1_A1.append(M1.quantify(D3_y1.instances)[1])
+            size_D2.append(len(sample_D2.labels))
+        true_M0_A1 = [D3_y0.prevalence()[1]] * len(estim_M0_A1)
+        true_M1_A1 = [D3_y1.prevalence()[1]] * len(estim_M1_A1)
+        return true_M0_A1, true_M1_A1, estim_M0_A1, estim_M1_A1, size_D2
+
+    return vary_and_test(quantifier, D2, D2_y_hat, D3_y0, D3_y1, sample_sizes, nreps)
+
+
 
 
 def eval_prevalence_variations_D3(D1, D2, D3, classifier, quantifier, sample_size=500, nprevs=101, nreps=2):

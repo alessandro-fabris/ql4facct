@@ -133,7 +133,6 @@ def eval_size_variations_D2(D1, D2, D3, classifier, quantifier, nreps=10, sample
         estim_M0_A1 = []
         estim_M1_A1 = []
         size_D2 = []
-
         for sample_D2, sample_idcs in tqdm(natural_sampling_generator_varsize(D2, sample_sizes, nreps),
                               desc='training quantifiers at size variations in D2'):
             assert sample_D2.prevalence().prod() != 0

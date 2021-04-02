@@ -94,30 +94,28 @@ def eval_prevalence_variations_D1(D1, D2, D3, classifier, quantifier, sample_siz
     return true_M0_A1, true_M1_A1, estim_M0_A1, estim_M1_A1
 
 
-def eval_prevalence_variations_D2(D1, D2, D3, classifier, quantifier, sample_size=500, nprevs=101):
+def eval_prevalence_variations_D2(D1, D2, D3, classifier, quantifier, sample_size=1000, nprevs=101, nreps=2):
     f = classifier.fit(*D1.Xy)
-
     D2_y1, D2_y0 = classify(f, D2)
     D3_y1, D3_y0 = classify(f, D3)
+    dict_prev = get_prevalences(D2_y0, D2_y1, D3_y0, D3_y1)
 
-    def vary_and_test(quantifier, D2split, D3split):
+    def vary_and_test(quantifier, D2split, D3split, nreps):
         M = deepcopy(quantifier)
-
         estim_M_A1 = []
-        for sample_D2 in tqdm(D2split.artificial_sampling_generator(sample_size=sample_size, n_prevalences=nprevs),
-                              total=nprevs, desc='training quantifiers at prevalence variations in D2'):
+        prev_D2_sample = []
+        for sample_D2 in tqdm(D2split.artificial_sampling_generator(sample_size=sample_size, n_prevalences=nprevs, repeats=nreps),
+                              total=nprevs):
             if sample_D2.prevalence().prod() == 0: continue
             M.fit(sample_D2) #TODO: are we sure calling fit() multiple times is fine (i.e. no memory)?
             estim_M_A1.append(M.quantify(D3split.instances)[1])
-
+            prev_D2_sample.append(sample_D2.prevalence()[1])
         true_M_A1 = [D3split.prevalence()[1]] * len(estim_M_A1)
+        return true_M_A1, estim_M_A1, prev_D2_sample
+    true_M1_A1, estim_M1_A1, prev_D2_y1 = vary_and_test(quantifier, D2_y1, D3_y1, nreps)
+    true_M0_A1, estim_M0_A1, prev_D2_y0 = vary_and_test(quantifier, D2_y0, D3_y0, nreps)
 
-        return true_M_A1, estim_M_A1
-
-    true_M1_A1, estim_M1_A1 = vary_and_test(quantifier, D2_y1, D3_y1)
-    true_M0_A1, estim_M0_A1 = vary_and_test(quantifier, D2_y0, D3_y0)
-
-    return true_M0_A1, true_M1_A1, estim_M0_A1, estim_M1_A1
+    return true_M0_A1, true_M1_A1, estim_M0_A1, estim_M1_A1, prev_D2_y0, prev_D2_y1,  dict_prev
 
 def eval_size_variations_D2(D1, D2, D3, classifier, quantifier, nreps=10, sample_sizes=None):
     if sample_sizes is None:

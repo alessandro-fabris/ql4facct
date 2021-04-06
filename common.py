@@ -88,11 +88,6 @@ def eval_prevalence_variations_D1(D1, D2, D3, AD1, classifier, quantifier, sampl
 
             D2_y1, D2_y0 = classify(f, D2)
             D3_y1, D3_y0 = classify(f, D3)
-
-            # sanity check: prevs below should be similar, i.e.
-            # prev_A1_D2_y1 \simeq prev_A1_D3_y1,
-            # prev_A1_D2_y0 \simeq prev_A1_D3_y0.
-            # unless we change this, MLPE should be quite accurate
             dict_prev = get_prevalences(D2_y0, D2_y1, D3_y0, D3_y1)
 
             M1 = deepcopy(quantifier).fit(D2_y1)

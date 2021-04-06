@@ -26,21 +26,25 @@ def get_prevalences(D2_y0, D2_y1, D3_y0, D3_y1):
          "perc_pred_y1_D3": len(D3_y1) / len(D3_y0 + D3_y1)}
     return d
 
+def joint_code_yA(y,A):
+    return y + 2 * A
+
 def split_data(X, y, A, seed):
 
     # jointly codify (y,A) as 0,0->0; 1,0->1; 0,1->2; 1,1->3 to stratify
-    yA = y + 2 * A
+    yA = joint_code_yA(y,A)
 
     data = LabelledCollection(X, yA)
     D1, data = data.split_stratified(train_prop=1/3, random_state=seed)
     D2, D3 = data.split_stratified(train_prop=1/2, random_state=seed)
 
     # recodify targets in D1 for y, and D2,D3 for A
+    AD1 = np.logical_or(D1.labels==2, D1.labels==3).astype(int)
     D1 = LabelledCollection(D1.instances, np.logical_or(D1.labels==1, D1.labels==3).astype(int), n_classes=2)
     D2 = LabelledCollection(D2.instances, np.logical_or(D2.labels==2, D2.labels==3).astype(int), n_classes=2)
     D3 = LabelledCollection(D3.instances, np.logical_or(D3.labels==2, D3.labels==3).astype(int), n_classes=2)
 
-    return D1, D2, D3
+    return D1, D2, D3, AD1
 
 
 def classify(classifier:BaseEstimator, data:LabelledCollection):
@@ -62,36 +66,46 @@ def compute_bias_error(true_M0_A1, true_M1_A1, estim_M0_A1, estim_M1_A1):
     error = np.abs(bias)
     return bias.mean(), bias.std(), error.mean(), error.std()
 
-def eval_prevalence_variations_D1(D1, D2, D3, classifier, quantifier, sample_size=500, nprevs=101):
-
+def eval_prevalence_variations_D1(D1, D2, D3, AD1, classifier, quantifier, sample_size=500, nprevs=101, nreps=2):
+    idcs_00_11 = [i for i, (y,a) in enumerate(zip(D1.labels, AD1)) if (a == 0 and y == 0) or (a == 1 and y == 1)]
+    idcs_01_10 = [i for i, (y,a) in enumerate(zip(D1.labels, AD1)) if (a == 0 and y == 1) or (a == 1 and y == 0)]
+    assert len(idcs_00_11) + len(idcs_01_10) == len(D1.labels)
     true_M0_A1, true_M1_A1 = [], []
     estim_M0_A1, estim_M1_A1 = [], []
+    p_Aeqy = []
 
-    for sample_D1 in tqdm(D1.artificial_sampling_generator(sample_size=sample_size, n_prevalences=nprevs),
-                          total=nprevs, desc='training quantifiers at prevalence variations in D1'):
-        if sample_D1.prevalence().prod() == 0: continue
+    prevs = np.linspace(0., 1., nprevs, endpoint=True)
+    for prev in prevs:
+        for _ in range(nreps):
+            sample_size_00_11 = int(round(prev*sample_size))
+            sample_size_01_10 = sample_size - sample_size_00_11
+            idcs_sample = list(np.random.permutation(idcs_00_11)[:sample_size_00_11]) + \
+                          list(np.random.permutation(idcs_01_10)[:sample_size_01_10])
+            sample_D1 = LabelledCollection([D1.instances[i] for i in idcs_sample], [D1.labels[i] for i in idcs_sample])
 
-        f = classifier.fit(*sample_D1.Xy)
+            assert sample_D1.prevalence().prod() != 0
+            f = classifier.fit(*sample_D1.Xy)
 
-        D2_y1, D2_y0 = classify(f, D2)
-        D3_y1, D3_y0 = classify(f, D3)
+            D2_y1, D2_y0 = classify(f, D2)
+            D3_y1, D3_y0 = classify(f, D3)
 
-        # sanity check: prevs below should be similar, i.e.
-        # prev_A1_D2_y1 \simeq prev_A1_D3_y1,
-        # prev_A1_D2_y0 \simeq prev_A1_D3_y0.
-        # unless we change this, MLPE should be quite accurate
-        dict_prev = get_prevalences(D2_y0, D2_y1, D3_y0, D3_y1)
+            # sanity check: prevs below should be similar, i.e.
+            # prev_A1_D2_y1 \simeq prev_A1_D3_y1,
+            # prev_A1_D2_y0 \simeq prev_A1_D3_y0.
+            # unless we change this, MLPE should be quite accurate
+            dict_prev = get_prevalences(D2_y0, D2_y1, D3_y0, D3_y1)
 
-        M1 = deepcopy(quantifier).fit(D2_y1)
-        M0 = deepcopy(quantifier).fit(D2_y0)
+            M1 = deepcopy(quantifier).fit(D2_y1)
+            M0 = deepcopy(quantifier).fit(D2_y0)
 
-        estim_M1_A1.append(M1.quantify(D3_y1.instances)[1])
-        estim_M0_A1.append(M0.quantify(D3_y0.instances)[1])
+            estim_M1_A1.append(M1.quantify(D3_y1.instances)[1])
+            estim_M0_A1.append(M0.quantify(D3_y0.instances)[1])
 
-        true_M1_A1.append(D3_y1.prevalence()[1])
-        true_M0_A1.append(D3_y0.prevalence()[1])
+            true_M1_A1.append(D3_y1.prevalence()[1])
+            true_M0_A1.append(D3_y0.prevalence()[1])
+            p_Aeqy.append(prev)
 
-    return true_M0_A1, true_M1_A1, estim_M0_A1, estim_M1_A1
+    return true_M0_A1, true_M1_A1, estim_M0_A1, estim_M1_A1, p_Aeqy
 
 
 def eval_prevalence_variations_D2(D1, D2, D3, classifier, quantifier, sample_size=1000, nprevs=101, nreps=2):
@@ -107,7 +121,7 @@ def eval_prevalence_variations_D2(D1, D2, D3, classifier, quantifier, sample_siz
         for sample_D2 in tqdm(D2split.artificial_sampling_generator(sample_size=sample_size, n_prevalences=nprevs, repeats=nreps),
                               total=nprevs):
             if sample_D2.prevalence().prod() == 0: continue
-            M.fit(sample_D2) #TODO: are we sure calling fit() multiple times is fine (i.e. no memory)?
+            M.fit(sample_D2)
             estim_M_A1.append(M.quantify(D3split.instances)[1])
             prev_D2_sample.append(sample_D2.prevalence()[1])
         true_M_A1 = [D3split.prevalence()[1]] * len(estim_M_A1)
@@ -137,9 +151,9 @@ def eval_size_variations_D2(D1, D2, D3, classifier, quantifier, nreps=10, sample
             sample_D2_y_hat = D2_y_hat[sample_idcs]
             sample_D2_y0 = LabelledCollection(sample_D2.instances[sample_D2_y_hat == 0], sample_D2.labels[sample_D2_y_hat == 0], n_classes=sample_D2.n_classes)
             sample_D2_y1 = LabelledCollection(sample_D2.instances[sample_D2_y_hat == 1], sample_D2.labels[sample_D2_y_hat == 1], n_classes=sample_D2.n_classes)
-            M0.fit(sample_D2_y0)  # TODO: are we sure calling fit() multiple times is fine (i.e. no memory)?
+            M0.fit(sample_D2_y0)
             estim_M0_A1.append(M0.quantify(D3_y0.instances)[1])
-            M1.fit(sample_D2_y1)  #TODO: are we sure calling fit() multiple times is fine (i.e. no memory)?
+            M1.fit(sample_D2_y1)
             estim_M1_A1.append(M1.quantify(D3_y1.instances)[1])
             size_D2.append(len(sample_D2.labels))
         true_M0_A1 = [D3_y0.prevalence()[1]] * len(estim_M0_A1)

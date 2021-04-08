@@ -55,10 +55,18 @@ def update_dict_vary_D2_size(d, true_M0_A1, estim_M0_A1, true_M1_A1, estim_M1_A1
     d["quant"].extend([Q_name] * len(size_D2))
     d["estim_error"].extend(error)
 
-def update_dict_prev_D1_size(d, true_M0_A1, estim_M0_A1, true_M1_A1, estim_M1_A1, p_Aeqy, Q_name):
+def update_dict_prev_D1_prev(d, true_M0_A1, estim_M0_A1, true_M1_A1, estim_M1_A1, p_Aeqy, Q_name):
     assert len(true_M0_A1) == len(estim_M0_A1) == len(true_M1_A1) == len(estim_M1_A1) == len(p_Aeqy)
     error = [(e0 - e1) - (t0 - t1) for e0, e1, t0, t1 in zip(estim_M0_A1, estim_M1_A1, true_M0_A1, true_M1_A1)]
     d["x_axis"].extend(p_Aeqy)
+    d["quant"].extend([Q_name] * len(p_Aeqy))
+    d["estim_error"].extend(error)
+
+def update_dict_prev_D1_prev_flip(d, true_M0_A1, estim_M0_A1, true_M1_A1, estim_M1_A1, p_Aeqy, Q_name):
+    assert len(true_M0_A1) == len(estim_M0_A1) == len(true_M1_A1) == len(estim_M1_A1) == len(p_Aeqy)
+    error = [(e0 - e1) - (t0 - t1) for e0, e1, t0, t1 in zip(estim_M0_A1, estim_M1_A1, true_M0_A1, true_M1_A1)]
+    true_indep_gap = [t0 - t1 for t0, t1 in zip(true_M0_A1, true_M1_A1)]
+    d["x_axis"].extend(true_indep_gap)
     d["quant"].extend([Q_name] * len(p_Aeqy))
     d["estim_error"].extend(error)
 
@@ -110,8 +118,11 @@ def boxplot_from_dict(d, filename, xlab='x_axis', tit='', xvar=None, preproc=Non
     if preproc is None:
         df = pd.DataFrame(d)
         xvar = "x_axis"
-    elif preproc == "D3_prev" or preproc == "D1_prev":
-        d["x_axis_q"] = [np.round(t * 100) / 100 for t in d["x_axis"]]
+    elif preproc == "D3_prev" or preproc == "D1_prev" or preproc == "D1_prev_flip":
+        if preproc == "D1_prev_flip":
+            d["x_axis_q"] = [np.round(t * 10) / 10 for t in d["x_axis"]]
+        else:
+            d["x_axis_q"] = [np.round(t * 100) / 100 for t in d["x_axis"]]
         df = pd.DataFrame(d)
         df.sort_values("x_axis_q", inplace=True)
         xvar = "x_axis_q"
@@ -122,7 +133,8 @@ def boxplot_from_dict(d, filename, xlab='x_axis', tit='', xvar=None, preproc=Non
     plt.savefig(filename)
 
 
-protocol = "vary_D1_prev"
+# protocol = "vary_D1_prev"
+protocol = "vary_D1_prev_flip"
 # protocol = "vary_D2_size"
 # protocol = "vary_D2_prev"
 # protocol = "vary_D3_prev"
@@ -137,7 +149,7 @@ D1, D2, D3, AD1 = split_data(X, y, A, seed=0)
 
 f = new_cls()
 
-if protocol == "vary_D1_prev":
+if protocol == "vary_D1_prev" or protocol == "vary_D1_prev_flip":
     vary_prev_D1 = {"estim_error": [], "x_axis": [], "quant": []}
 elif protocol == "vary_D2_size":
     # not stratified in any way (challenging but realistic)
@@ -155,7 +167,11 @@ for Q in [CC(new_cls()), ACC(new_cls()), PACC(new_cls()), EMQ(new_cls()), HDy(ne
     if protocol == "vary_D1_prev":
         true_M0_A1, true_M1_A1, estim_M0_A1, estim_M1_A1, p_Aeqy = \
             eval_prevalence_variations_D1(D1, D2, D3, AD1, f, Q, nprevs=11, nreps=2, sample_size=1000)
-        update_dict_prev_D1_size(vary_prev_D1, true_M0_A1, estim_M0_A1, true_M1_A1, estim_M1_A1, p_Aeqy, Q_name)
+        update_dict_prev_D1_prev(vary_prev_D1, true_M0_A1, estim_M0_A1, true_M1_A1, estim_M1_A1, p_Aeqy, Q_name)
+    elif protocol == "vary_D1_prev_flip":
+        true_M0_A1, true_M1_A1, estim_M0_A1, estim_M1_A1, p_Aeqy = \
+            eval_prevalence_variations_D1_flip(D1, D2, D3, AD1, f, Q, nprevs=11, nreps=20, sample_size=1000)
+        update_dict_prev_D1_prev_flip(vary_prev_D1, true_M0_A1, estim_M0_A1, true_M1_A1, estim_M1_A1, p_Aeqy, Q_name)
     elif protocol == "vary_D2_size":
         true_M0_A1, true_M1_A1, estim_M0_A1, estim_M1_A1, size_D2 = \
             eval_size_variations_D2(D1, D2, D3, f, Q, nreps=10, sample_sizes=None)
@@ -182,6 +198,10 @@ for Q in [CC(new_cls()), ACC(new_cls()), PACC(new_cls()), EMQ(new_cls()), HDy(ne
 if protocol == "vary_D1_prev":
     boxplot_from_dict(vary_prev_D1, "./plots/protD1_vary_prev_d1.pdf", xlab='$\mathbb{P}(A=Y)$ in $\mathcal{D}_1$',
                       preproc="D1_prev")
+elif protocol == "vary_D1_prev_flip":
+    boxplot_from_dict(vary_prev_D1, "./plots/protD1_vary_prev_d1_flip.pdf",
+                      xlab='$\mathbb{P}(A=1|\hat{Y}=0) - \mathbb{P}(A=1|\hat{Y}=1)$ in $\mathcal{D}_3$ i.e. true indep. gap',
+                      preproc="D1_prev_flip")
 elif protocol == "vary_D2_size":
     boxplot_from_dict(vary_size_D2, "./plots/protD2_vary_size.pdf", xlab=r'$|\mathcal{D}_2|$', tit='')
 elif protocol == "vary_D2_prev":

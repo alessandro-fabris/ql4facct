@@ -102,6 +102,65 @@ def eval_prevalence_variations_D1(D1, D2, D3, AD1, classifier, quantifier, sampl
 
     return true_M0_A1, true_M1_A1, estim_M0_A1, estim_M1_A1, p_Aeqy
 
+def eval_prevalence_variations_D1_flip(D1, D2, D3, AD1, classifier, quantifier, sample_size=500, nprevs=101, nreps=2):
+    true_M0_A1, true_M1_A1 = [], []
+    estim_M0_A1, estim_M1_A1 = [], []
+    p_Aeqy = []
+
+    prevs = np.linspace(0., 1., nprevs, endpoint=True)
+
+    def flip_labels(Y, A, p_Aeqy):
+        idcs_00 = [i for i, (y, a) in enumerate(zip(Y, A)) if (a == 0 and y == 0)]
+        idcs_01 = [i for i, (y, a) in enumerate(zip(Y, A)) if (a == 0 and y == 1)]
+        idcs_10 = [i for i, (y, a) in enumerate(zip(Y, A)) if (a == 1 and y == 0)]
+        idcs_11 = [i for i, (y, a) in enumerate(zip(Y, A)) if (a == 1 and y == 1)]
+        assert len(idcs_00) + len(idcs_01) + len(idcs_10) + len(idcs_11) == len(Y) == len(A)
+        p_Aeqy_given_A0 = len(idcs_00) / (len(idcs_00) + len(idcs_01))
+        p_Aeqy_given_A1 = len(idcs_11) / (len(idcs_10) + len(idcs_11))
+        if p_Aeqy_given_A0 > p_Aeqy:
+            num_flip = int(round((1-p_Aeqy)*(len(idcs_00) + len(idcs_01)))) - len(idcs_01)
+            Y = [1 if i in idcs_00[:num_flip] else y for i, y in enumerate(Y)]
+        else:
+            num_flip = int(round(p_Aeqy*(len(idcs_00) + len(idcs_01)))) - len(idcs_00)
+            Y = [0 if i in idcs_01[:num_flip] else y for i, y in enumerate(Y)]
+        assert num_flip >= 0
+        if p_Aeqy_given_A1 > p_Aeqy:
+            num_flip = int(round((1-p_Aeqy)*(len(idcs_10) + len(idcs_11)))) - len(idcs_10)
+            Y = [0 if i in idcs_11[:num_flip] else y for i, y in enumerate(Y)]
+        else:
+            num_flip = int(round(p_Aeqy*(len(idcs_10) + len(idcs_11)))) - len(idcs_11)
+            Y = [1 if i in idcs_10[:num_flip] else y for i, y in enumerate(Y)]
+        assert num_flip >= 0
+        return Y
+
+    for prev in prevs:
+        for _ in range(nreps):
+            idcs_sample = list(np.random.permutation(range(len(D1.labels)))[:sample_size])
+            X_sample = [D1.instances[i] for i in idcs_sample]
+            y_sample = [D1.labels[i] for i in idcs_sample]
+            A_sample = [AD1[i] for i in idcs_sample]
+            y_sample = flip_labels(y_sample, A_sample, prev)
+            sample_D1 = LabelledCollection(X_sample, y_sample)
+
+            assert sample_D1.prevalence().prod() != 0
+            f = classifier.fit(*sample_D1.Xy)
+
+            D2_y1, D2_y0 = classify(f, D2)
+            D3_y1, D3_y0 = classify(f, D3)
+            dict_prev = get_prevalences(D2_y0, D2_y1, D3_y0, D3_y1)
+
+            M1 = deepcopy(quantifier).fit(D2_y1)
+            M0 = deepcopy(quantifier).fit(D2_y0)
+
+            estim_M1_A1.append(M1.quantify(D3_y1.instances)[1])
+            estim_M0_A1.append(M0.quantify(D3_y0.instances)[1])
+
+            true_M1_A1.append(D3_y1.prevalence()[1])
+            true_M0_A1.append(D3_y0.prevalence()[1])
+            p_Aeqy.append(prev)
+
+    return true_M0_A1, true_M1_A1, estim_M0_A1, estim_M1_A1, p_Aeqy
+
 
 def eval_prevalence_variations_D2(D1, D2, D3, classifier, quantifier, sample_size=1000, nprevs=101, nreps=2):
     f = classifier.fit(*D1.Xy)

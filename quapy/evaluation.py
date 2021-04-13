@@ -21,8 +21,7 @@ def artificial_sampling_prediction(
         eval_budget: int = None,
         n_jobs=1,
         random_seed=42,
-        verbose=True
-):
+        verbose=True):
     """
     Performs the predictions for all samples generated according to the artificial sampling protocol.
     :param model: the model in charge of generating the class prevalence estimations
@@ -47,6 +46,45 @@ def artificial_sampling_prediction(
 
     with temp_seed(random_seed):
         indexes = list(test.artificial_sampling_index_generator(sample_size, n_prevpoints, n_repetitions))
+
+    return _predict_from_indexes(indexes, model, test, n_jobs, verbose)
+
+
+def natural_sampling_prediction(
+        model: BaseQuantifier,
+        test: LabelledCollection,
+        sample_size,
+        n_repetitions=1,
+        n_jobs=1,
+        random_seed=42,
+        verbose=True):
+    """
+    Performs the predictions for all samples generated according to the artificial sampling protocol.
+    :param model: the model in charge of generating the class prevalence estimations
+    :param test: the test set on which to perform arificial sampling
+    :param sample_size: the size of the samples
+    :param n_repetitions: the number of repetitions for each prevalence
+    :param n_jobs: number of jobs to be run in parallel
+    :param random_seed: allows to replicate the samplings. The seed is local to the method and does not affect
+    any other random process.
+    :param verbose: if True, shows a progress bar
+    :return: two ndarrays of shape (m,n) with m the number of samples (n_repetitions) and n the
+     number of classes. The first one contains the true prevalences for the samples generated while the second one
+     contains the the prevalence estimations
+    """
+
+    with temp_seed(random_seed):
+        indexes = list(test.natural_sampling_index_generator(sample_size, n_repetitions))
+
+    return _predict_from_indexes(indexes, model, test, n_jobs, verbose)
+
+
+def _predict_from_indexes(
+        indexes,
+        model: BaseQuantifier,
+        test: LabelledCollection,
+        n_jobs=1,
+        verbose=True):
 
     if model.aggregative: #isinstance(model, qp.method.aggregative.AggregativeQuantifier):
         # print('\tinstance of aggregative-quantifier')

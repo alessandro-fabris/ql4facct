@@ -5,26 +5,42 @@ from plot import *
 from quapy.method.aggregative import CC, ACC, PACC, EMQ, HDy
 import itertools
 from common import Protocol
-from tables import generate_tables
+import pathlib
 
 
 qp.environ['SAMPLE_SIZE'] = 100
 
-nprevs=21
-nreps=10
-sample_size=1000
+protocol = Protocol.VAR_D3_PREV
 model_selection=False
 datasplit_repetitions = 1
 data_path = "./adult.csv"
 protected_attr = "gender"
+debug = True
+options = {
+    'nprevs': 21,
+    'nreps': 10,
+    'sample_size': 50
+}
+result_dir = './results'
+os.makedirs(result_dir, exist_ok=True)
+
+skip_already_computed = True  # set to False to force re-generate them
+dataset_name = pathlib.Path(data_path).name.replace('.','_')
+
 # Notice P(A=0, y=1)<0.04, i.e. rich women are rare.
 # This is a bottleneck for quantification, e.g. in the vary_D2_size protocol, when |D2|=1000 there are ~37 women in D21
 # making life pretty hard for M1.
 
+# TODO: should we have different sample_size for D21, D20 to reflect the prevalence of hat_y in the data?
+# TODO: should we have different sample_size for D31, D30 to reflect the prevalence of hat_y in the data?
+
 f = LogisticRegression()
-
-protocol = Protocol.VAR_D3_PREV
-
+# if debug:
+#     f = LogisticRegression()
+# else:
+#     f = GridSearchCV(estimator=LogisticRegression(),
+#                      param_grid={'C': np.logspace(-3,3,7), 'class_weight': ['balanced', None]}, cv=5,
+#                      n_jobs=-1)
 
 def classifiers():
     hyperparams = {'C': np.logspace(-3,3,7), 'class_weight': ['balanced', None]}
@@ -33,10 +49,10 @@ def classifiers():
 
 def quantifiers():
     yield 'CC', CC
-    #yield 'ACC', ACC
+    # yield 'ACC', ACC
     yield 'PACC', PACC
-    yield 'EMQ', EMQ
-    #yield 'HDy', HDy
+    # yield 'EMQ', EMQ
+    # yield 'HDy', HDy
 
 
 def iter_quantifiers(model_selection=True):
@@ -65,41 +81,31 @@ for run, (D1, D2, D3, AD1) in enumerate(gen_split_data(X, y, A, repetitions=data
     for Q_name, Q in pbar:
         pbar.set_description(f'{protocol}: {Q_name}')
 
+        result_path = os.path.join(result_dir, f'{dataset_name}_{Q_name}_{run}_Prot{protocol}.pkl')
+
+        if skip_already_computed and os.path.exists(result_path):
+            print(f'skipping {result_path}; already computed!')
+            continue
+
         """"
         if protocol == Protocols.VAR_D1_PREV:
             outs = eval_prevalence_variations_D1(D1, D2, D3, AD1, f, Q, nprevs=nprevs, nreps=nreps, sample_size=sample_size)
         elif protocol == Protocols.VAR_D1_PREVFLIP:
+        """
         if protocol == Protocol.VAR_D1_PREVFLIP:
-            outs = eval_prevalence_variations_D1_flip(D1, D2, D3, AD1, f, Q, nprevs=nprevs, nreps=nreps, sample_size=sample_size)
+            outs = eval_prevalence_variations_D1_flip(D1, D2, D3, AD1, f, Q, **options)
         elif protocol == Protocol.VAR_D2_SIZE:
-            outs = eval_size_variations_D2(D1, D2, D3, f, Q, nreps=nreps, sample_sizes=None)
+            outs = eval_size_variations_D2(D1, D2, D3, f, Q, sample_sizes=None, nreps=options['nreps'])
         elif protocol == Protocol.VAR_D2_PREV:
-            # TODO: should we have different sample_size for D21, D20 to reflect the prevalence of hat_y in the data?
-            outs = eval_prevalence_variations_D2(D1, D2, D3, f, Q, nprevs=nprevs, nreps=nreps, sample_size=sample_size)
-        el"""
-        if protocol == Protocol.VAR_D3_PREV:
-            # TODO: should we have different sample_size for D31, D30 to reflect the prevalence of hat_y in the data?
-            outs = eval_prevalence_variations_D3(D1, D2, D3, f, Q, nprevs=nprevs, nreps=nreps, sample_size=sample_size)
+            outs = eval_prevalence_variations_D2(D1, D2, D3, f, Q, **options)
+        elif protocol == Protocol.VAR_D3_PREV:
+            outs = eval_prevalence_variations_D3(D1, D2, D3, f, Q, **options)
 
-        outs.Q_name = Q_name
-        outs.run = run
-        results.append(outs)
+        outs.set('Q_name', Q_name)
+        outs.set('run', run)
+        outs.save(result_path)
 
-
-
-
-# ------------------------------------
-# tables
-# ------------------------------------
-generate_tables(protocol, results)
-
-
-# ------------------------------------
-# plots
-# ------------------------------------
-generate_plots(protocol, results)
-
-
-
+    if debug:
+        break
 
 

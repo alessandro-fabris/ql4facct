@@ -1,6 +1,8 @@
 import itertools
 from typing import List
 
+import pandas as pd
+
 import quapy as qp
 import numpy as np
 from quapy.data import LabelledCollection
@@ -25,77 +27,51 @@ class Protocol(Enum):
     D3_y0 fixed).
     """
 
-"""
-
-class Result_(dataclass):
-    protocol: Protocols
-    dataset: str
-    D1_pAeq: np.ndarray
-    D1_size: np.ndarray
-    D2_s0_size: np.ndarray
-    D2_s1_size: np.ndarray
-    D3_s0_size: np.ndarray
-    D3_s1_size: np.ndarray
-    true_D1_A1: np.ndarray
-    true_D2_s0_A1: np.ndarray
-    true_D2_s1_A1: np.ndarray
-    true_D3_s0_A1: np.ndarray
-    true_D3_s1_A1: np.ndarray
-    estim_D3_s0_A1: np.ndarray
-    estim_D3_s1_A1: np.ndarray
-"""
 
 class Result:
-    def __init__(self,
-                 protocol,
-                 true_D3_s0_A1,
-                 true_D3_s1_A1,
-                 estim_D3_s0_A1,
-                 estim_D3_s1_A1,
-                 D1_pAeq=None,
-                 D1_size=None,
-                 D2_s0_size=None,
-                 D2_s1_size=None,
-                 D3_s0_size=None,
-                 D3_s1_size=None,
-                 true_D1_A1=None,
-                 true_D2_s0_A1=None,
-                 true_D2_s1_A1=None
-    ):
-        self.protocol = protocol
-        self.true_D3_s0_A1 = true_D3_s0_A1
-        self.true_D3_s1_A1 = true_D3_s1_A1
-        self.estim_D3_s0_A1 = estim_D3_s0_A1
-        self.estim_D3_s1_A1 = estim_D3_s1_A1
+    def __init__(self, df:pd.DataFrame):
+        self.data = df
+
+    @classmethod
+    def with_columns(cls, protocol, true_D3_s0_A1, true_D3_s1_A1, estim_D3_s0_A1, estim_D3_s1_A1, **kwargs):
+        columns = {
+            'protocol': protocol,
+            'trueD3s0A1': true_D3_s0_A1,
+            'trueD3s1A1': true_D3_s1_A1,
+            'estimD3s0A1': estim_D3_s0_A1,
+            'estimD3s1A1': estim_D3_s1_A1
+        }
+        columns.update(kwargs)
+        return Result(pd.DataFrame(columns))
 
     def independence_gap(self):
-        return independence_gap(self.true_D3_s0_A1, self.true_D3_s1_A1, self.estim_D3_s0_A1, self.estim_D3_s1_A1)
+        d = self.data
+        return independence_gap(d['trueD3s0A1'], d['trueD3s1A1'], d['estimD3s0A1'], d['estimD3s1A1'])
 
     def independence_abs_error(self):
-        return independence_abs_error(self.true_D3_s0_A1, self.true_D3_s1_A1, self.estim_D3_s0_A1, self.estim_D3_s1_A1)
+        d = self.data
+        return independence_abs_error(d['trueD3s0A1'], d['trueD3s1A1'], d['estimD3s0A1'], d['estimD3s1A1'])
 
     def independence_sqr_error(self):
-        return independence_sqr_error(self.true_D3_s0_A1, self.true_D3_s1_A1, self.estim_D3_s0_A1, self.estim_D3_s1_A1)
+        d = self.data
+        return independence_sqr_error(d['trueD3s0A1'], d['trueD3s1A1'], d['estimD3s0A1'], d['estimD3s1A1'])
 
-    def from_slice(self, s:slice):
-        return Result(self.protocol,
-                      self.true_D3_s0_A1[s],
-                      self.true_D3_s1_A1[s],
-                      self.estim_D3_s0_A1[s],
-                      self.estim_D3_s1_A1[s])
+    def set(self, colname, value):
+        self.data[colname]=value
+
     @classmethod
-    def concatenate(cls, results:List["Result"]):
-        assert len(set(r.protocol for r in results)) == 1, 'merging more than one protocol'
-        return Result(
-            protocol=results[0].protocol,
-            true_D3_s0_A1=np.concatenate([r.true_D3_s0_A1 for r in results]),
-            true_D3_s1_A1=np.concatenate([r.true_D3_s1_A1 for r in results]),
-            estim_D3_s0_A1=np.concatenate([r.estim_D3_s0_A1 for r in results]),
-            estim_D3_s1_A1=np.concatenate([r.estim_D3_s1_A1 for r in results]),
-        )
+    def concat(self, results):
+        return Result(pd.concat([r.data for r in results]))
 
     def __len__(self):
-        return len(self.true_D3_s0_A1)
+        return len(self.data)
+
+    def save(self, path):
+        self.data.to_pickle(path)
+
+    @classmethod
+    def load(cls, path):
+        return Result(df=pd.read_pickle(path))
 
 
 def uniform_sampling_with_indices(D: LabelledCollection, size):
@@ -107,17 +83,6 @@ def natural_sampling_generator_varsize(D: LabelledCollection, sample_sizes, repe
     for _ in range(repeats):
         for sample_size in sample_sizes:
             yield uniform_sampling_with_indices(D, sample_size)
-
-"""
-def get_prevalences(D2_y0, D2_y1, D3_y0, D3_y1):
-    return {
-         "prev_A1_D2_y1": D2_y1.labels.mean(),
-         "prev_A1_D2_y0": D2_y0.labels.mean(),
-         "prev_A1_D3_y0": D3_y0.labels.mean(),
-         "perc_pred_y1_D2": len(D2_y1) / len(D2_y0 + D2_y1),
-         "perc_pred_y1_D3": len(D3_y1) / len(D3_y0 + D3_y1)
-    }
-"""
 
 
 def as_labelled_collections(D1, D2, D3):
@@ -158,22 +123,6 @@ def classify(classifier:BaseEstimator, data:LabelledCollection):
     pred_negatives = LabelledCollection(data.instances[y_hat == 0], data.labels[y_hat == 0], n_classes=data.n_classes)
     return pred_positives, pred_negatives
 
-
-"""
-def compute_bias_error(true_M0_A1, true_M1_A1, estim_M0_A1, estim_M1_A1):
-
-    def cross_diff(M0pos, M1pos):
-        M0pos = np.asarray(M0pos)
-        M1pos = np.asarray(M1pos)
-        return M0pos.reshape(-1, 1) - M1pos
-
-    true_diff = cross_diff(true_M0_A1, true_M1_A1)
-    estim_diff = cross_diff(estim_M0_A1, estim_M1_A1)
-    bias = estim_diff - true_diff
-    error = np.abs(bias)
-    return bias.mean(), bias.std(), error.mean(), error.std()
-
-"""
 
 """
 def eval_prevalence_variations_D1(D1, D2, D3, AD1, classifier, quantifier, sample_size=500, nprevs=101, nreps=2):
@@ -221,26 +170,36 @@ def eval_prevalence_variations_D1_flip(D1, D2, D3, AD1, classifier, quantifier, 
     prevs = np.linspace(0., 1., nprevs, endpoint=True)
 
     def flip_labels(Y, A, p_Aeqy):
-        idcs_00 = [i for i, (y, a) in enumerate(zip(Y, A)) if (a == 0 and y == 0)]
-        idcs_01 = [i for i, (y, a) in enumerate(zip(Y, A)) if (a == 0 and y == 1)]
-        idcs_10 = [i for i, (y, a) in enumerate(zip(Y, A)) if (a == 1 and y == 0)]
-        idcs_11 = [i for i, (y, a) in enumerate(zip(Y, A)) if (a == 1 and y == 1)]
+        Y = np.copy(Y)
+        idcs_00 = np.asarray([i for i, (y, a) in enumerate(zip(Y, A)) if (a == 0 and y == 0)])
+        idcs_01 = np.asarray([i for i, (y, a) in enumerate(zip(Y, A)) if (a == 0 and y == 1)])
+        idcs_10 = np.asarray([i for i, (y, a) in enumerate(zip(Y, A)) if (a == 1 and y == 0)])
+        idcs_11 = np.asarray([i for i, (y, a) in enumerate(zip(Y, A)) if (a == 1 and y == 1)])
         assert len(idcs_00) + len(idcs_01) + len(idcs_10) + len(idcs_11) == len(Y) == len(A)
+
         p_Aeqy_given_A0 = len(idcs_00) / (len(idcs_00) + len(idcs_01))
         p_Aeqy_given_A1 = len(idcs_11) / (len(idcs_10) + len(idcs_11))
         if p_Aeqy_given_A0 > p_Aeqy:
             num_flip = int(round((1-p_Aeqy)*(len(idcs_00) + len(idcs_01)))) - len(idcs_01)
-            Y = [1 if i in idcs_00[:num_flip] else y for i, y in enumerate(Y)]
+            if num_flip > 0:
+                Y[idcs_00[:num_flip]] = 1
+            # Y = [1 if i in idcs_00[:num_flip] else y for i, y in enumerate(Y)]
         else:
             num_flip = int(round(p_Aeqy*(len(idcs_00) + len(idcs_01)))) - len(idcs_00)
-            Y = [0 if i in idcs_01[:num_flip] else y for i, y in enumerate(Y)]
+            if num_flip>0:
+                Y[idcs_01[:num_flip]] = 0
+            # Y = [0 if i in idcs_01[:num_flip] else y for i, y in enumerate(Y)]
         assert num_flip >= 0
         if p_Aeqy_given_A1 > p_Aeqy:
             num_flip = int(round((1-p_Aeqy)*(len(idcs_10) + len(idcs_11)))) - len(idcs_10)
-            Y = [0 if i in idcs_11[:num_flip] else y for i, y in enumerate(Y)]
+            if num_flip > 0:
+                Y[idcs_11[:num_flip]] = 0
+            # Y = [0 if i in idcs_11[:num_flip] else y for i, y in enumerate(Y)]
         else:
             num_flip = int(round(p_Aeqy*(len(idcs_10) + len(idcs_11)))) - len(idcs_11)
-            Y = [1 if i in idcs_10[:num_flip] else y for i, y in enumerate(Y)]
+            if num_flip > 0:
+                Y[idcs_10[:num_flip]] = 1
+            # Y = [1 if i in idcs_10[:num_flip] else y for i, y in enumerate(Y)]
         assert num_flip >= 0
         return Y
 
@@ -258,7 +217,6 @@ def eval_prevalence_variations_D1_flip(D1, D2, D3, AD1, classifier, quantifier, 
 
             D2_y1, D2_y0 = classify(f, D2)
             D3_y1, D3_y0 = classify(f, D3)
-            dict_prev = get_prevalences(D2_y0, D2_y1, D3_y0, D3_y1)
 
             M1 = deepcopy(quantifier).fit(D2_y1)
             M0 = deepcopy(quantifier).fit(D2_y0)
@@ -268,38 +226,18 @@ def eval_prevalence_variations_D1_flip(D1, D2, D3, AD1, classifier, quantifier, 
 
             true_M1_A1.append(D3_y1.prevalence()[1])
             true_M0_A1.append(D3_y0.prevalence()[1])
+
             p_Aeqy.append(prev)
 
-    return true_M0_A1, true_M1_A1, estim_M0_A1, estim_M1_A1, p_Aeqy
+    return Result.with_columns(Protocol.VAR_D1_PREVFLIP, true_M0_A1, true_M1_A1, estim_M0_A1, estim_M1_A1,
+                               p_Aeqy=p_Aeqy)
 
-
-def eval_prevalence_variations_D2(D1, D2, D3, classifier, quantifier, sample_size=1000, nprevs=101, nreps=2):
-    f = classifier.fit(*D1.Xy)
-    D2_y1, D2_y0 = classify(f, D2)
-    D3_y1, D3_y0 = classify(f, D3)
-    dict_prev = get_prevalences(D2_y0, D2_y1, D3_y0, D3_y1)
-
-    def vary_and_test(quantifier, D2split, D3split, nreps):
-        M = deepcopy(quantifier)
-        estim_M_A1 = []
-        prev_D2_sample = []
-        for sample_D2 in tqdm(D2split.artificial_sampling_generator(sample_size=sample_size, n_prevalences=nprevs, repeats=nreps),
-                              total=nprevs):
-            if sample_D2.prevalence().prod() == 0: continue
-            M.fit(sample_D2)
-            estim_M_A1.append(M.quantify(D3split.instances)[1])
-            prev_D2_sample.append(sample_D2.prevalence()[1])
-        true_M_A1 = [D3split.prevalence()[1]] * len(estim_M_A1)
-        return true_M_A1, estim_M_A1, prev_D2_sample
-    true_M1_A1, estim_M1_A1, prev_D2_y1 = vary_and_test(quantifier, D2_y1, D3_y1, nreps)
-    true_M0_A1, estim_M0_A1, prev_D2_y0 = vary_and_test(quantifier, D2_y0, D3_y0, nreps)
-
-    return true_M0_A1, true_M1_A1, estim_M0_A1, estim_M1_A1, prev_D2_y0, prev_D2_y1,  dict_prev
 
 def eval_size_variations_D2(D1, D2, D3, classifier, quantifier, nreps=10, sample_sizes=None):
     if sample_sizes is None:
         min_size = 1000
         sample_sizes = [int(round(val)) for val in np.geomspace(min_size, len(D2.labels), num=5)]
+
     f = classifier.fit(*D1.Xy)
     D2_y_hat = classifier.predict(D2.instances)
     D3_y1, D3_y0 = classify(f, D3)
@@ -307,25 +245,102 @@ def eval_size_variations_D2(D1, D2, D3, classifier, quantifier, nreps=10, sample
     def vary_and_test(quantifier, D2, D2_y_hat, D3_y0, D3_y1, sample_sizes, nreps):
         M0 = deepcopy(quantifier)
         M1 = deepcopy(quantifier)
-        estim_M0_A1 = []
-        estim_M1_A1 = []
+        estim_M0_A1, estim_M1_A1  = [], []
         size_D2 = []
         for sample_D2, sample_idcs in tqdm(natural_sampling_generator_varsize(D2, sample_sizes, nreps),
-                              desc='training quantifiers at size variations in D2'):
+                                           desc='training quantifiers at size variations in D2'):
             assert sample_D2.prevalence().prod() != 0
             sample_D2_y_hat = D2_y_hat[sample_idcs]
-            sample_D2_y0 = LabelledCollection(sample_D2.instances[sample_D2_y_hat == 0], sample_D2.labels[sample_D2_y_hat == 0], n_classes=sample_D2.n_classes)
-            sample_D2_y1 = LabelledCollection(sample_D2.instances[sample_D2_y_hat == 1], sample_D2.labels[sample_D2_y_hat == 1], n_classes=sample_D2.n_classes)
+            sample_D2_y0 = sample_D2.sampling_from_index(sample_D2_y_hat == 0)
+            sample_D2_y1 = sample_D2.sampling_from_index(sample_D2_y_hat == 1)
+            # sample_D2_y0 = LabelledCollection(sample_D2.instances[sample_D2_y_hat == 0], sample_D2.labels[sample_D2_y_hat == 0], n_classes=sample_D2.n_classes)
+            # sample_D2_y1 = LabelledCollection(sample_D2.instances[sample_D2_y_hat == 1], sample_D2.labels[sample_D2_y_hat == 1], n_classes=sample_D2.n_classes)
             M0.fit(sample_D2_y0)
             estim_M0_A1.append(M0.quantify(D3_y0.instances)[1])
             M1.fit(sample_D2_y1)
             estim_M1_A1.append(M1.quantify(D3_y1.instances)[1])
             size_D2.append(len(sample_D2))
-        true_M0_A1 = [D3_y0.prevalence()[1]] * len(estim_M0_A1)
-        true_M1_A1 = [D3_y1.prevalence()[1]] * len(estim_M1_A1)
-        return true_M0_A1, true_M1_A1, estim_M0_A1, estim_M1_A1, size_D2
 
-    return vary_and_test(quantifier, D2, D2_y_hat, D3_y0, D3_y1, sample_sizes, nreps)
+        estim_M0_A1 = np.asarray(estim_M0_A1)
+        estim_M1_A1 = np.asarray(estim_M1_A1)
+        true_M0_A1 = np.asarray([D3_y0.prevalence()[1]] * len(estim_M0_A1))
+        true_M1_A1 = np.asarray([D3_y1.prevalence()[1]] * len(estim_M1_A1))
+
+        return true_M0_A1, estim_M0_A1, true_M1_A1, estim_M1_A1, size_D2
+
+    true_D3_s0_A1, estim_D3_s0_A1, true_D3_s1_A1, estim_D3_s1_A1, size_D2 = \
+        vary_and_test(quantifier, D2, D2_y_hat, D3_y0, D3_y1, sample_sizes, nreps)
+
+    return Result.with_columns(Protocol.VAR_D2_SIZE, true_D3_s0_A1, true_D3_s1_A1, estim_D3_s0_A1, estim_D3_s1_A1,
+                               size_D2=size_D2)
+
+
+def eval_prevalence_variations_D2(D1, D2, D3, classifier, quantifier, sample_size=1000, nprevs=101, nreps=2):
+    f = classifier.fit(*D1.Xy)
+
+    D2_y1, D2_y0 = classify(f, D2)
+    D3_y1, D3_y0 = classify(f, D3)
+
+    M0 = deepcopy(quantifier)
+    M1 = deepcopy(quantifier)
+
+    def vary_and_test(quantifierVar:BaseQuantifier, quantifierFix:BaseQuantifier,
+                      D2var: LabelledCollection, D2fix: LabelledCollection,
+                      D3var: LabelledCollection, D3fix: LabelledCollection):
+
+        # artificial samplings in D2var
+        trueD2sampVar, estimD3var = [], []
+        for D2sampleVar in D2var.artificial_sampling_generator(sample_size=sample_size, n_prevalences=nprevs, repeats=nreps):
+            if D2sampleVar.prevalence().prod() == 0: continue
+            quantifierVar.fit(D2sampleVar)
+            estimD3var.append(quantifierVar.quantify(D3var.instances)[1])
+            trueD2sampVar.append(D2sampleVar.prevalence()[1])
+        estimD3var = np.asarray(estimD3var)
+        trueD2sampVar = np.asarray(trueD2sampVar)
+        trueD3var = np.asarray([D3var.prevalence()[1]] * len(estimD3var))
+
+        # natural samplings in D2fix
+        trueD2sampFix, estimD3fix = [], []
+        for D2sampleFix in D2fix.natural_sampling_generator(sample_size=sample_size, repeats=len(estimD3var)):
+            quantifierFix.fit(D2sampleFix)
+            estimD3fix.append(quantifierFix.quantify(D3fix.instances)[1])
+            trueD2sampFix.append(D2sampleFix.prevalence()[1])  # should be fixed at the original prevalence
+        estimD3fix = np.asarray(estimD3fix)
+        trueD2sampFix = np.asarray(trueD2sampFix)
+        trueD3fix = [D3fix.prevalence()[1]] * len(estimD3fix)
+
+        return trueD3var, estimD3var, trueD3fix, estimD3fix, trueD2sampVar, trueD2sampFix
+
+    true_D3s0var, estim_D3s0var, true_D3s1fix, estim_D3s1fix, true_D2s0var, true_D2s1fix = vary_and_test(M0, M1, D2_y0, D2_y1, D3_y0, D3_y1)
+    true_D3s1var, estim_D3s1var, true_D3s0fix, estim_D3s0fix, true_D2s1var, true_D2s0fix = vary_and_test(M1, M0, D2_y1, D2_y0, D3_y1, D3_y0)
+
+    # stack the blocks
+    true_D3_s0_A1   = np.concatenate([true_D3s0var, true_D3s0fix])
+    true_D3_s1_A1   = np.concatenate([true_D3s1fix, true_D3s1var])
+    estim_D3_s0_A1  = np.concatenate([estim_D3s0var, estim_D3s0fix])
+    estim_D3_s1_A1  = np.concatenate([estim_D3s1fix, estim_D3s1var])
+    true_D2_s0_A1   = np.concatenate([true_D2s0var, true_D2s0fix])
+    true_D2_s1_A1 = np.concatenate([true_D2s1fix, true_D2s1var])
+
+    def get_prevalences(D2_y0, D2_y1, D3_y0, D3_y1):
+        print('REMOVE THIS')
+        return {
+            "prev_A1_D2_y1": D2_y1.labels.mean(),
+            "prev_A1_D2_y0": D2_y0.labels.mean(),
+            "prev_A1_D3_y0": D3_y0.labels.mean(),
+            "perc_pred_y1_D2": len(D2_y1) / len(D2_y0 + D2_y1),
+            "perc_pred_y1_D3": len(D3_y1) / len(D3_y0 + D3_y1)
+        }
+
+    dict_prev = get_prevalences(D2_y0, D2_y1, D3_y0, D3_y1)
+
+    return Result.with_columns(Protocol.VAR_D2_PREV, true_D3_s0_A1, true_D3_s1_A1, estim_D3_s0_A1, estim_D3_s1_A1,
+                               var_s=np.asarray([0] * len(true_D3s0var) + [1] * len(true_D3s1var)),
+                               D2_s0_prev=true_D2_s0_A1,
+                               D2_s1_prev=true_D2_s1_A1,
+                               D3_s0_prev=D3_y0.prevalence()[1],
+                               D3_s1_prev=D3_y1.prevalence()[1]
+                               )
 
 
 def eval_prevalence_variations_D3(D1, D2, D3, classifier, quantifier, sample_size=500, nprevs=101, nreps=2):
@@ -337,31 +352,28 @@ def eval_prevalence_variations_D3(D1, D2, D3, classifier, quantifier, sample_siz
     M0 = deepcopy(quantifier).fit(D2_y0)
     M1 = deepcopy(quantifier).fit(D2_y1)
 
-    true_D3_y0_val = D3_y0.prevalence()[1]
-    true_D3_y1_val = D3_y1.prevalence()[1]
-
-    estim_D3_y0_val = M0.quantify(D3_y0.instances)[1]
-    estim_D3_y1_val = M1.quantify(D3_y1.instances)[1]
-
-    def estimate_prevalences(quantSa:BaseQuantifier, Sa: LabelledCollection, truePrevSb:float, estimPrevSb:float):
-        truePrevsSa, estimPrevsSa = qp.evaluation.artificial_sampling_prediction(
-            quantSa,  # the quantification method
-            Sa,  # the test set on which the method will be evaluated
+    def vary_and_test(quantifierVar:BaseQuantifier, quantifierFix:BaseQuantifier, varySplit: LabelledCollection, fixSplit:LabelledCollection):
+        trueVar, estimVar = qp.evaluation.artificial_sampling_prediction(
+            quantifierVar,  # the quantification method
+            varySplit,  # the test set on which the method will be evaluated
             sample_size=sample_size,  # indicates the size of samples to be drawn
             n_prevpoints=nprevs,  # how many prevalence points will be extracted from the interval [0, 1] for each category
             n_repetitions=nreps,  # number of times each prevalence will be used to generate a test sample
             n_jobs=-1,  # indicates the number of parallel workers (-1 indicates, as in sklearn, all CPUs)
-            random_seed=42,  # setting a random seed allows to replicate the test samples across runs
-            verbose=True  # set to True to show some standard-line outputs
         )
-        truePrevsSa = truePrevsSa[:,1]
-        estimPrevsSa = estimPrevsSa[:,1]
-        truePrevSb = np.full_like(truePrevsSa, fill_value=truePrevSb)
-        estimPrevSb = np.full_like(estimPrevsSa, fill_value=estimPrevSb)
-        return truePrevsSa, estimPrevsSa, truePrevSb, estimPrevSb
 
-    true_s0var, estim_s0var, true_s1fix, estim_s1fix = estimate_prevalences(M0, D3_y0, true_D3_y1_val, estim_D3_y1_val)
-    true_s1var, estim_s1var, true_s0fix, estim_s0fix = estimate_prevalences(M1, D3_y1, true_D3_y0_val, estim_D3_y0_val)
+        trueFix, estimFix = qp.evaluation.natural_sampling_prediction(
+            quantifierFix,
+            fixSplit,
+            sample_size=sample_size,
+            n_repetitions=trueVar.shape[0],
+            n_jobs=-1
+        )
+
+        return trueVar[:,1], estimVar[:,1], trueFix[:,1], estimFix[:,1]
+
+    true_s0var, estim_s0var, true_s1fix, estim_s1fix = vary_and_test(M0, M1, D3_y0, D3_y1)
+    true_s1var, estim_s1var, true_s0fix, estim_s0fix = vary_and_test(M1, M0, D3_y1, D3_y0)
 
     # stack the blocks
     true_D3_s0_A1 = np.concatenate([true_s0var, true_s0fix])
@@ -369,15 +381,10 @@ def eval_prevalence_variations_D3(D1, D2, D3, classifier, quantifier, sample_siz
     estim_D3_s0_A1 = np.concatenate([estim_s0var, estim_s0fix])
     estim_D3_s1_A1 = np.concatenate([estim_s1fix, estim_s1var])
 
-    result = Result(Protocol.VAR_D3_PREV, true_D3_s0_A1, true_D3_s1_A1, estim_D3_s0_A1, estim_D3_s1_A1)
-
-    # info for plots
-    result.var_s0 = slice(0, len(true_s0var))  # slice containing results with variations in s0 (s1 fix)
-    result.var_s1 = slice(len(true_s1fix), len(true_s1fix) + len(true_s1var))  # slice for variations in s1 (s0 fix)
-    result.D2_s0_prev = D2_y0.prevalence()[1]
-    result.D2_s1_prev = D2_y1.prevalence()[1]
-
-    return result
+    return Result.with_columns(Protocol.VAR_D3_PREV, true_D3_s0_A1, true_D3_s1_A1, estim_D3_s0_A1, estim_D3_s1_A1,
+                  var_s=np.asarray([0]*len(true_s0var) + [1]*len(true_s1var)),
+                  D2_s0_prev=D2_y0.prevalence()[1],
+                  D2_s1_prev=D2_y1.prevalence()[1])
 
 
 def independence(s0_A1, s1_A1):

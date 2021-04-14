@@ -1,0 +1,93 @@
+\documentclass[10pt,a4paper]{article}
+\usepackage[utf8]{inputenc}
+\usepackage{a4}
+\usepackage{amssymb}
+\usepackage{amsmath}
+\usepackage{array}
+\usepackage{color}
+\usepackage{colortbl}
+\usepackage{dcolumn}
+\usepackage[acronym]{glossaries}
+\usepackage{graphicx}
+\usepackage{hyperref}
+\usepackage{latexsym}
+\usepackage{mfirstuc}
+\usepackage{multicol}
+\usepackage{multirow}
+\usepackage{rotating}
+\usepackage{tabularx,booktabs}
+% \usepackage{theapa}
+\usepackage{url}
+\usepackage[usenames]{xcolor}
+\usepackage{outlines}
+\usepackage{wasysym}
+\usepackage{etoolbox}
+
+\begin{document}
+
+% ------------------------------------
+\section{Results for Adult dataset}
+
+% ------------------------------------
+\subsection{Protocol 1}
+
+\begin{table}[h!]
+\input{tab_Protocols.VAR_D1_PREV_adult.tex}
+\caption{Protocol Var D1 by prev in Adult dataset}
+\end{table}
+
+\begin{table}[h!]
+\input{tab_Protocols.VAR_D1_PREVFLIP_adult.tex}
+\caption{Protocol Var D1 by label flippling in Adult dataset}
+\end{table}
+
+\begin{figure}[h!]
+\includegraphics[width=.5\textwidth]{../plots/protD1_vary_prev_d1.pdf}
+\includegraphics[width=.5\textwidth]{../plots/protD1_vary_prev_d1_flip.pdf}
+\caption{Left: Prot VAR1Prev, Right:Var1Flip}
+\end{figure}
+
+% ------------------------------------
+\clearpage
+\newpage
+\subsection{Protocol 2}
+
+\begin{table}[h!]
+\input{tab_Protocols.VAR_D2_PREV_adult.tex}
+\caption{Protocol Var D2 by prev in Adult dataset}
+\end{table}
+
+\begin{figure}[h!]
+\includegraphics[width=.5\textwidth]{../plots/protD2_vary_prev_d20.pdf}
+\includegraphics[width=.5\textwidth]{../plots/protD2_vary_prev_d21.pdf}
+\caption{Left: Prot VAR2Prev D3-0, Right:Prot VAR2Prev D3-1}
+\end{figure}
+
+\begin{table}[h!]
+\input{tab_Protocols.VAR_D2_SIZE_adult.tex}
+\caption{Protocol Var D2 by size in Adult dataset}
+\end{table}
+
+\begin{figure}[h!]
+\center
+\includegraphics[width=.5\textwidth]{../plots/protD2_vary_size.pdf}
+\caption{Prot2Size}
+\end{figure}
+
+% ------------------------------------
+\clearpage
+\newpage
+\subsection{Protocol 3}
+
+\begin{table}[h!]
+\input{tab_Protocols.VAR_D3_PREV_adult.tex}
+\caption{Protocol Var D3 by prev in Adult dataset}
+\end{table}
+
+\begin{figure}[h!]
+\includegraphics[width=.5\textwidth]{../plots/protD3_vary_prev_d30.pdf}
+\includegraphics[width=.5\textwidth]{../plots/protD3_vary_prev_d31.pdf}
+\caption{Left: Prot VAR3Prev D3-0, Right:Prot VAR3Prev D3-1}
+\end{figure}
+
+\end{document}

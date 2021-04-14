@@ -1,9 +1,37 @@
 import numpy as np
 import itertools
 from scipy.stats import ttest_ind_from_stats, wilcoxon
+from typing import List
+from common import Protocols, Result
 
+
+def generate_tables(protocol: Protocols, outs: List[Result], table_path):
+
+    allresults = Result.concat(outs).select_protocol(protocol)
+    method_names = allresults.data['Q_name'].unique()
+
+    columns = ['Gap', '$|\mathrm{Error}|$', 'Error$^2$']
+    table = Table(columns, list(method_names), lower_is_better=True, ttest='wilcoxon', prec_mean=3, show_std=True,
+                  prec_std=3, average=False, color=False)
+
+    for Q_name in method_names:
+        results = allresults.filter('Q_name', Q_name)
+        print(f'{Q_name} has {len(results)} outs')
+        gap = results.independence_gap()
+        abs_error = results.independence_abs_error()
+        sqr_error = results.independence_sqr_error()
+        table.add('Gap', Q_name, values=gap)
+        table.add('$|\mathrm{Error}|$', Q_name, values=abs_error)
+        table.add('Error$^2$', Q_name, values=sqr_error)
+
+    with open(table_path, 'wt') as foo:
+        foo.write(table.latexTabularMxB(average=False))
+
+
+# this is copypasted from another project...
 
 class Table:
+
     VALID_TESTS = [None, "wilcoxon", "ttest"]
 
     def __init__(self, benchmarks, methods, lower_is_better=True, ttest='ttest', prec_mean=3,
@@ -249,7 +277,9 @@ class Table:
         return l
 
     def latexTabularBxM(self, benchmark_replace={}, method_replace={}, average=True):
-        tab = ' & '
+        tab = "\center\n"
+        tab += "\\begin{tabular}{|c||" + ('c|' * self.nmethods) + "} \hline\n"
+        tab += ' & '
         tab += ' & '.join([method_replace.get(col, col) for col in self.methods])
         tab += ' \\\\\hline\n'
         for row in self.benchmarks:
@@ -261,10 +291,13 @@ class Table:
             tab += '\hline\n'
             tab += 'Average & '
             tab += self.latexAverageMethods()
+        tab += "\end{tabular}%\n"
         return tab
 
     def latexTabularMxB(self, benchmark_replace={}, method_replace={}, average=True):
-        tab = ' & '
+        tab = "\center\n"
+        tab += "\\begin{tabular}{|c||" + ('c|' * self.nbenchmarks) + "} \hline\n"
+        tab += ' & '
         tab += ' & '.join([benchmark_replace.get(col, col) for col in self.benchmarks])
         tab += ' \\\\\hline\n'
         for row in self.methods:
@@ -274,29 +307,9 @@ class Table:
 
         if average:
             raise NotImplementedError()
+
+        tab += "\end{tabular}%\n"
         return tab
-
-    def latexTable(self, path, benchmark_replace={}, method_replace={}, average=True, caption='', label='', resizebox=False, method_by_benchmark=False):
-        table = "\center\n"
-        if resizebox:
-            table += "\\resizebox{\\textwidth}{!}{%\n"
-
-        ncols = self.nbenchmarks if method_by_benchmark else self.nmethods
-        table += "\\begin{tabular}{|c||" + ('c|' * ncols) + "} \hline\n"
-        if method_by_benchmark:
-            table += self.latexTabularMxB(benchmark_replace, method_replace, average)
-        else:
-            table += self.latexTabularBxM(benchmark_replace, method_replace, average)
-        table += "\n\end{tabular}%\n"
-        if resizebox:
-            table += "\n}\n"
-        if caption:
-            table+='\caption{'+caption+'}\n'
-        if label:
-            table += '\label{' + label + '}\n'
-        print(f'saving results in {path}')
-        with open(path, 'wt') as foo:
-            foo.write(table)
 
     def latexRowMethods(self, benchmark, endl='\\\\\hline\n'):
         s = [self.latex(benchmark, col) for col in self.methods]

@@ -1,22 +1,16 @@
 import itertools
-from typing import List
-
 import pandas as pd
-
 import quapy as qp
 import numpy as np
 from quapy.data import LabelledCollection
 from sklearn.base import BaseEstimator
-from sklearn.linear_model import LogisticRegression
 from copy import deepcopy
 from tqdm import tqdm
 from enum import Enum
-from dataclasses import dataclass
-
 from quapy.method.base import BaseQuantifier
 
 
-class Protocol(Enum):
+class Protocols(Enum):
     VAR_D1_PREV = 0  # currently unused
     VAR_D1_PREVFLIP = 1  # artificial variations of P(A=y) in D1
     VAR_D2_PREV = 2
@@ -29,7 +23,7 @@ class Protocol(Enum):
 
 
 class Result:
-    def __init__(self, df:pd.DataFrame):
+    def __init__(self, df: pd.DataFrame):
         self.data = df
 
     @classmethod
@@ -43,6 +37,10 @@ class Result:
         }
         columns.update(kwargs)
         return Result(pd.DataFrame(columns))
+
+    def independence_true(self):
+        d = self.data
+        return independence(d['trueD3s0A1'], d['trueD3s1A1'])
 
     def independence_gap(self):
         d = self.data
@@ -72,6 +70,13 @@ class Result:
     @classmethod
     def load(cls, path):
         return Result(df=pd.read_pickle(path))
+
+    def select_protocol(self, protocol):
+        return self.filter('protocol', protocol)
+
+    def filter(self, attr, val):
+        df = self.data
+        return Result(df.loc[df[attr] == val])
 
 
 def uniform_sampling_with_indices(D: LabelledCollection, size):
@@ -124,30 +129,55 @@ def classify(classifier:BaseEstimator, data:LabelledCollection):
     return pred_positives, pred_negatives
 
 
-"""
 def eval_prevalence_variations_D1(D1, D2, D3, AD1, classifier, quantifier, sample_size=500, nprevs=101, nreps=2):
-    idcs_00_11 = [i for i, (y,a) in enumerate(zip(D1.labels, AD1)) if (a == 0 and y == 0) or (a == 1 and y == 1)]
-    idcs_01_10 = [i for i, (y,a) in enumerate(zip(D1.labels, AD1)) if (a == 0 and y == 1) or (a == 1 and y == 0)]
-    assert len(idcs_00_11) + len(idcs_01_10) == len(D1.labels)
+    D1indexesAeqY = LabelledCollection(instances=np.arange(len(D1)), labels=D1.labels==AD1)
+
+    #idcs_00_11 = [i for i, (y,a) in enumerate(zip(D1.labels, AD1)) if (a == 0 and y == 0) or (a == 1 and y == 1)]
+    #idcs_01_10 = [i for i, (y,a) in enumerate(zip(D1.labels, AD1)) if (a == 0 and y == 1) or (a == 1 and y == 0)]
+    #assert len(idcs_00_11) + len(idcs_01_10) == len(D1.labels)
     true_M0_A1, true_M1_A1 = [], []
     estim_M0_A1, estim_M1_A1 = [], []
     p_Aeqy = []
 
+    steps = qp.functional.num_prevalence_combinations(nprevs, n_classes=2, n_repeats=nreps)
+    for idx in tqdm(D1indexesAeqY.artificial_sampling_index_generator(sample_size, nprevs, nreps), total=steps):
+        sample_D1 = D1.sampling_from_index(idx)
+        if sample_D1.prevalence().prod() == 0:
+            continue
+        f = classifier.fit(*sample_D1.Xy)
+
+        D2_y1, D2_y0 = classify(f, D2)
+        D3_y1, D3_y0 = classify(f, D3)
+
+        M1 = deepcopy(quantifier).fit(D2_y1)
+        M0 = deepcopy(quantifier).fit(D2_y0)
+
+        estim_M1_A1.append(M1.quantify(D3_y1.instances)[1])
+        estim_M0_A1.append(M0.quantify(D3_y0.instances)[1])
+
+        true_M1_A1.append(D3_y1.prevalence()[1])
+        true_M0_A1.append(D3_y0.prevalence()[1])
+
+        prevAeqY = D1indexesAeqY.labels[idx].mean()
+        p_Aeqy.append(prevAeqY)
+    """
     prevs = np.linspace(0., 1., nprevs, endpoint=True)
     for prev in prevs:
         for _ in range(nreps):
             sample_size_00_11 = int(round(prev*sample_size))
             sample_size_01_10 = sample_size - sample_size_00_11
-            idcs_sample = list(np.random.permutation(idcs_00_11)[:sample_size_00_11]) + \
-                          list(np.random.permutation(idcs_01_10)[:sample_size_01_10])
-            sample_D1 = LabelledCollection([D1.instances[i] for i in idcs_sample], [D1.labels[i] for i in idcs_sample])
+            idcs_sample = np.concatenate([
+                np.random.permutation(idcs_00_11)[:sample_size_00_11],
+                np.random.permutation(idcs_01_10)[:sample_size_01_10]
+            ])
+            sample_D1 = D1.sampling_from_index(idcs_sample)
+            #sample_D1 = LabelledCollection([D1.instances[i] for i in idcs_sample], [D1.labels[i] for i in idcs_sample])
 
             assert sample_D1.prevalence().prod() != 0
             f = classifier.fit(*sample_D1.Xy)
 
             D2_y1, D2_y0 = classify(f, D2)
             D3_y1, D3_y0 = classify(f, D3)
-            dict_prev = get_prevalences(D2_y0, D2_y1, D3_y0, D3_y1)
 
             M1 = deepcopy(quantifier).fit(D2_y1)
             M0 = deepcopy(quantifier).fit(D2_y0)
@@ -157,10 +187,12 @@ def eval_prevalence_variations_D1(D1, D2, D3, AD1, classifier, quantifier, sampl
 
             true_M1_A1.append(D3_y1.prevalence()[1])
             true_M0_A1.append(D3_y0.prevalence()[1])
-            p_Aeqy.append(prev)
 
-    return true_M0_A1, true_M1_A1, estim_M0_A1, estim_M1_A1, p_Aeqy
-"""
+            p_Aeqy.append(prev)
+            """
+
+    return Result.with_columns(Protocols.VAR_D1_PREV, true_M0_A1, true_M1_A1, estim_M0_A1, estim_M1_A1, p_Aeqy=p_Aeqy)
+
 
 def eval_prevalence_variations_D1_flip(D1, D2, D3, AD1, classifier, quantifier, sample_size=500, nprevs=101, nreps=2):
     true_M0_A1, true_M1_A1 = [], []
@@ -229,7 +261,7 @@ def eval_prevalence_variations_D1_flip(D1, D2, D3, AD1, classifier, quantifier, 
 
             p_Aeqy.append(prev)
 
-    return Result.with_columns(Protocol.VAR_D1_PREVFLIP, true_M0_A1, true_M1_A1, estim_M0_A1, estim_M1_A1,
+    return Result.with_columns(Protocols.VAR_D1_PREVFLIP, true_M0_A1, true_M1_A1, estim_M0_A1, estim_M1_A1,
                                p_Aeqy=p_Aeqy)
 
 
@@ -271,7 +303,7 @@ def eval_size_variations_D2(D1, D2, D3, classifier, quantifier, nreps=10, sample
     true_D3_s0_A1, estim_D3_s0_A1, true_D3_s1_A1, estim_D3_s1_A1, size_D2 = \
         vary_and_test(quantifier, D2, D2_y_hat, D3_y0, D3_y1, sample_sizes, nreps)
 
-    return Result.with_columns(Protocol.VAR_D2_SIZE, true_D3_s0_A1, true_D3_s1_A1, estim_D3_s0_A1, estim_D3_s1_A1,
+    return Result.with_columns(Protocols.VAR_D2_SIZE, true_D3_s0_A1, true_D3_s1_A1, estim_D3_s0_A1, estim_D3_s1_A1,
                                size_D2=size_D2)
 
 
@@ -322,19 +354,7 @@ def eval_prevalence_variations_D2(D1, D2, D3, classifier, quantifier, sample_siz
     true_D2_s0_A1   = np.concatenate([true_D2s0var, true_D2s0fix])
     true_D2_s1_A1 = np.concatenate([true_D2s1fix, true_D2s1var])
 
-    def get_prevalences(D2_y0, D2_y1, D3_y0, D3_y1):
-        print('REMOVE THIS')
-        return {
-            "prev_A1_D2_y1": D2_y1.labels.mean(),
-            "prev_A1_D2_y0": D2_y0.labels.mean(),
-            "prev_A1_D3_y0": D3_y0.labels.mean(),
-            "perc_pred_y1_D2": len(D2_y1) / len(D2_y0 + D2_y1),
-            "perc_pred_y1_D3": len(D3_y1) / len(D3_y0 + D3_y1)
-        }
-
-    dict_prev = get_prevalences(D2_y0, D2_y1, D3_y0, D3_y1)
-
-    return Result.with_columns(Protocol.VAR_D2_PREV, true_D3_s0_A1, true_D3_s1_A1, estim_D3_s0_A1, estim_D3_s1_A1,
+    return Result.with_columns(Protocols.VAR_D2_PREV, true_D3_s0_A1, true_D3_s1_A1, estim_D3_s0_A1, estim_D3_s1_A1,
                                var_s=np.asarray([0] * len(true_D3s0var) + [1] * len(true_D3s1var)),
                                D2_s0_prev=true_D2_s0_A1,
                                D2_s1_prev=true_D2_s1_A1,
@@ -381,10 +401,10 @@ def eval_prevalence_variations_D3(D1, D2, D3, classifier, quantifier, sample_siz
     estim_D3_s0_A1 = np.concatenate([estim_s0var, estim_s0fix])
     estim_D3_s1_A1 = np.concatenate([estim_s1fix, estim_s1var])
 
-    return Result.with_columns(Protocol.VAR_D3_PREV, true_D3_s0_A1, true_D3_s1_A1, estim_D3_s0_A1, estim_D3_s1_A1,
-                  var_s=np.asarray([0]*len(true_s0var) + [1]*len(true_s1var)),
-                  D2_s0_prev=D2_y0.prevalence()[1],
-                  D2_s1_prev=D2_y1.prevalence()[1])
+    return Result.with_columns(Protocols.VAR_D3_PREV, true_D3_s0_A1, true_D3_s1_A1, estim_D3_s0_A1, estim_D3_s1_A1,
+                               var_s=np.asarray([0]*len(true_s0var) + [1]*len(true_s1var)),
+                               D2_s0_prev=D2_y0.prevalence()[1],
+                               D2_s1_prev=D2_y1.prevalence()[1])
 
 
 def independence(s0_A1, s1_A1):

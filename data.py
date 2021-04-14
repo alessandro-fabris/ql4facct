@@ -95,7 +95,7 @@ def compascsv_loader(path, protected_attr, covariates=None, dummies=None, races_
 
     if verbose:
         print(f'A=1 is {protected_attr}:{privileged[protected_attr]}; y=1 is {y_col}:{pos_y_cl}')
-        
+
     return X, y, A
 
 

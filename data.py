@@ -54,6 +54,61 @@ def adultcsv_loader(path, protected_attr, covariates=None, dummies=None, drop_fi
 
 
 
+def compascsv_loader(path, protected_attr, covariates=None, dummies=None, races_keep=None, drop_first_dummy=False, verbose=True):
+
+    if covariates is None:
+        covariates = ['age', 'juv_fel_count', 'juv_misd_count', 'juv_other_count', 'priors_count', 'c_charge_degree']
+
+    if dummies is None:
+        dummies = ['c_charge_degree']
+
+    if races_keep is None:
+        races_keep = ['African-American', 'Caucasian']
+
+    privileged = {
+        'sex': 'Male',
+        'race': 'Caucasian'
+    }
+    assert protected_attr in privileged, f'unknown protected attribute; valid are {privileged.keys()}'
+
+    if not all(d in covariates for d in dummies):
+        print('warning: some dummy-features are not in covariates')
+        dummies = [d for d in dummies if d in covariates]
+    df = pd.read_csv(path)
+    df = compas_strandard_preproc(df)
+    df = df[df['race'].isin(races_keep)]
+    df.reset_index(drop=True, inplace=True)
+
+    # process covariates
+    X = df[covariates]
+    for dummy in dummies:
+        df_dum = pd.get_dummies(X[dummy], prefix=dummy, drop_first=drop_first_dummy)
+        X = pd.concat([X, df_dum], axis=1)
+        X.drop(dummy, axis=1, inplace=True)
+    X = X.values
+
+    # process predictor
+    pos_y_cl = 1
+    y_col = 'is_recid'
+    y = qp.data.binarize(df[y_col], pos_class=pos_y_cl)
+
+    # process protected attribute
+    A = qp.data.binarize(df[protected_attr], pos_class=privileged[protected_attr])
+
+    if verbose:
+        print(f'A=1 is {protected_attr}:{privileged[protected_attr]}; y=1 is {y_col}:{pos_y_cl}')
+    return X, y, A
+
+def compas_strandard_preproc(df):
+    df = df[df['days_b_screening_arrest'] <= 30]
+    df = df[df['days_b_screening_arrest'] >= -30]
+    df = df[df['is_recid'] != -1]
+    df = df[df['c_charge_degree'] != 'O']
+    df = df[df['score_text'] != 'N/A']
+    df.reset_index(drop=True, inplace=True)
+    return df
+
+
 
 
 

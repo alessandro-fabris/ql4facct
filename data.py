@@ -2,8 +2,7 @@ import quapy as qp
 import pandas as pd
 
 
-
-def adultcsv_loader(path, protected_attr, covariates=None, dummies=None, drop_first_dummy=False, remove_missing=True, verbose=True):
+def adultcsv_loader(path, protected_attr, covariates=None, dummies=None, drop_first_dummy=True, remove_missing=True, verbose=True):
 
     if not remove_missing:
         raise NotImplementedError()
@@ -28,7 +27,7 @@ def adultcsv_loader(path, protected_attr, covariates=None, dummies=None, drop_fi
 
     df = pd.read_csv(path)
     if remove_missing:
-        # removing entries with missig values, may want to keep and treat as separate class instead
+        # removing entries with missing values, may want to keep and treat as separate class instead
         df = df[(df != '?').all(axis=1)]
         df.reset_index(drop=True, inplace=True)
 
@@ -53,8 +52,7 @@ def adultcsv_loader(path, protected_attr, covariates=None, dummies=None, drop_fi
     return X, y, A
 
 
-
-def compascsv_loader(path, protected_attr, covariates=None, dummies=None, races_keep=None, drop_first_dummy=False, verbose=True):
+def compascsv_loader(path, protected_attr, covariates=None, dummies=None, races_keep=None, drop_first_dummy=True, verbose=True):
 
     if covariates is None:
         covariates = ['age', 'juv_fel_count', 'juv_misd_count', 'juv_other_count', 'priors_count', 'c_charge_degree']
@@ -97,7 +95,9 @@ def compascsv_loader(path, protected_attr, covariates=None, dummies=None, races_
 
     if verbose:
         print(f'A=1 is {protected_attr}:{privileged[protected_attr]}; y=1 is {y_col}:{pos_y_cl}')
+        
     return X, y, A
+
 
 def compas_strandard_preproc(df):
     df = df[df['days_b_screening_arrest'] <= 30]

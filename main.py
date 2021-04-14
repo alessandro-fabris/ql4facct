@@ -18,7 +18,7 @@ qp.environ['SAMPLE_SIZE'] = 100
 
 model_selection = False
 datasplit_repetitions = 2
-data_path = "./adult.csv"
+data_path = "datasets/adult.csv"
 protected_attr = "gender"
 options = {
     'nprevs': 11,

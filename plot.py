@@ -24,6 +24,7 @@ def _init_result_dict():
 
 
 def generate_plots(protocol: Protocols, outs:List[Result], plotdir='./plots'):
+    os.makedirs(plotdir, exist_ok=True)
 
     results = Result.concat(outs).select_protocol(protocol)
 

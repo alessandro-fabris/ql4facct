@@ -17,7 +17,7 @@ from plot import generate_plots
 qp.environ['SAMPLE_SIZE'] = 100
 
 model_selection = False
-datasplit_repetitions = 2
+datasplit_repetitions = 1
 data_path = "datasets/adult.csv"
 protected_attr = "gender"
 options = {
@@ -72,7 +72,7 @@ def iter_quantifiers(model_selection=True):
 
 
 def dataset_name():
-    return pathlib.Path(data_path).name.replace('.csv', '')
+    return pathlib.Path(data_path).name.replace('.csv', '')+'_'+protected_attr
 
 
 def run_name():
@@ -124,9 +124,5 @@ for run, (D1, D2, D3, AD1) in enumerate(gen_split_data(X, y, A, repetitions=data
 # -------------------------
 for protocol in Protocols:
     generate_tables(protocol, results, table_path=join(table_dir, f'tab_{protocol}_{dataset_name()}.tex'))
-    generate_plots(protocol, results)
-
-
-
-
+    generate_plots(protocol, results, plotdir=join(plot_dir, dataset_name()))
 

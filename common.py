@@ -58,7 +58,7 @@ class Result:
         self.data[colname]=value
 
     @classmethod
-    def concat(self, results):
+    def concat(cls, results):
         return Result(pd.concat([r.data for r in results]))
 
     def __len__(self):
@@ -71,7 +71,7 @@ class Result:
     def load(cls, path):
         return Result(df=pd.read_pickle(path))
 
-    def select_protocol(self, protocol):
+    def select_protocol(self, protocol:Protocols):
         return self.filter('protocol', protocol)
 
     def filter(self, attr, val):

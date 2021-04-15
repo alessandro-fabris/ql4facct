@@ -2,6 +2,8 @@ import pathlib
 import os
 from os.path import join
 from sklearn.linear_model import LogisticRegression
+from sklearn.svm import LinearSVC
+
 from data import adultcsv_loader
 from common import *
 from quapy.method.aggregative import CC, ACC, PACC, EMQ, HDy
@@ -19,6 +21,7 @@ qp.environ['SAMPLE_SIZE'] = 100
 model_selection = False
 datasplit_repetitions = 1
 data_path = "datasets/adult.csv"
+data_loader = adultcsv_loader
 protected_attr = "gender"
 options = {
     'nprevs': 11,
@@ -52,7 +55,7 @@ def quantifiers():
     # yield 'HDy', HDy
 
 
-# instantiate all quantiiers x classifiers (wrapped also within model selection if requested)
+# instantiate all quantifiers x classifiers (wrapped also within model selection if requested)
 def iter_quantifiers(model_selection=True):
     for (c_name, c, hyper), (q_name, q) in itertools.product(classifiers(), quantifiers()):
         name = f'{q_name}({c_name})'
@@ -84,7 +87,7 @@ def run_name():
 # Compute the experiments
 # --------------------------------------------
 
-X, y, A = adultcsv_loader(data_path, protected_attr=protected_attr)
+X, y, A = data_loader(data_path, protected_attr=protected_attr)
 
 os.makedirs(result_dir, exist_ok=True)
 os.makedirs(table_dir, exist_ok=True)

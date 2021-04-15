@@ -38,13 +38,13 @@ class Result:
         columns.update(kwargs)
         return Result(pd.DataFrame(columns))
 
-    def independence_true(self):
-        d = self.data
-        return independence(d['trueD3s0A1'], d['trueD3s1A1'])
-
     def independence_gap(self):
         d = self.data
-        return independence_gap(d['trueD3s0A1'], d['trueD3s1A1'], d['estimD3s0A1'], d['estimD3s1A1'])
+        return independence_gap(d['trueD3s0A1'], d['trueD3s1A1'])
+
+    def independence_signed_error(self):
+        d = self.data
+        return estim_signed_error(d['trueD3s0A1'], d['trueD3s1A1'], d['estimD3s0A1'], d['estimD3s1A1'])
 
     def independence_abs_error(self):
         d = self.data
@@ -56,6 +56,9 @@ class Result:
 
     def set(self, colname, value):
         self.data[colname]=value
+
+    def get(self, colname):
+        return self.data[colname]
 
     @classmethod
     def concat(cls, results):
@@ -140,8 +143,8 @@ def eval_prevalence_variations_D1(D1, D2, D3, AD1, classifier, quantifier, sampl
     p_Aeqy = []
 
     steps = qp.functional.num_prevalence_combinations(nprevs, n_classes=2, n_repeats=nreps)
-    for idx in tqdm(D1indexesAeqY.artificial_sampling_index_generator(sample_size, nprevs, nreps), total=steps):
-        sample_D1 = D1.sampling_from_index(idx)
+    for idcs in tqdm(D1indexesAeqY.artificial_sampling_index_generator(sample_size, nprevs, nreps), total=steps):
+        sample_D1 = D1.sampling_from_index(idcs)
         if sample_D1.prevalence().prod() == 0:
             continue
         f = classifier.fit(*sample_D1.Xy)
@@ -158,7 +161,7 @@ def eval_prevalence_variations_D1(D1, D2, D3, AD1, classifier, quantifier, sampl
         true_M1_A1.append(D3_y1.prevalence()[1])
         true_M0_A1.append(D3_y0.prevalence()[1])
 
-        prevAeqY = D1indexesAeqY.labels[idx].mean()
+        prevAeqY = D1indexesAeqY.labels[idcs].mean()
         p_Aeqy.append(prevAeqY)
     """
     prevs = np.linspace(0., 1., nprevs, endpoint=True)
@@ -215,23 +218,19 @@ def eval_prevalence_variations_D1_flip(D1, D2, D3, AD1, classifier, quantifier, 
             num_flip = int(round((1-p_Aeqy)*(len(idcs_00) + len(idcs_01)))) - len(idcs_01)
             if num_flip > 0:
                 Y[idcs_00[:num_flip]] = 1
-            # Y = [1 if i in idcs_00[:num_flip] else y for i, y in enumerate(Y)]
         else:
             num_flip = int(round(p_Aeqy*(len(idcs_00) + len(idcs_01)))) - len(idcs_00)
             if num_flip>0:
                 Y[idcs_01[:num_flip]] = 0
-            # Y = [0 if i in idcs_01[:num_flip] else y for i, y in enumerate(Y)]
         assert num_flip >= 0
         if p_Aeqy_given_A1 > p_Aeqy:
             num_flip = int(round((1-p_Aeqy)*(len(idcs_10) + len(idcs_11)))) - len(idcs_10)
             if num_flip > 0:
                 Y[idcs_11[:num_flip]] = 0
-            # Y = [0 if i in idcs_11[:num_flip] else y for i, y in enumerate(Y)]
         else:
             num_flip = int(round(p_Aeqy*(len(idcs_10) + len(idcs_11)))) - len(idcs_11)
             if num_flip > 0:
                 Y[idcs_10[:num_flip]] = 1
-            # Y = [1 if i in idcs_10[:num_flip] else y for i, y in enumerate(Y)]
         assert num_flip >= 0
         return Y
 
@@ -352,7 +351,7 @@ def eval_prevalence_variations_D2(D1, D2, D3, classifier, quantifier, sample_siz
     estim_D3_s0_A1  = np.concatenate([estim_D3s0var, estim_D3s0fix])
     estim_D3_s1_A1  = np.concatenate([estim_D3s1fix, estim_D3s1var])
     true_D2_s0_A1   = np.concatenate([true_D2s0var, true_D2s0fix])
-    true_D2_s1_A1 = np.concatenate([true_D2s1fix, true_D2s1var])
+    true_D2_s1_A1   = np.concatenate([true_D2s1fix, true_D2s1var])
 
     return Result.with_columns(Protocols.VAR_D2_PREV, true_D3_s0_A1, true_D3_s1_A1, estim_D3_s0_A1, estim_D3_s1_A1,
                                var_s=np.asarray([0] * len(true_D3s0var) + [1] * len(true_D3s1var)),
@@ -407,19 +406,19 @@ def eval_prevalence_variations_D3(D1, D2, D3, classifier, quantifier, sample_siz
                                D2_s1_prev=D2_y1.prevalence()[1])
 
 
-def independence(s0_A1, s1_A1):
+def independence_gap(s0_A1, s1_A1):
     return s0_A1 - s1_A1
 
 
-def independence_gap(true_s0_A1, true_s1_A1, estim_s0_A1, estim_s1_A1):
+def estim_signed_error(true_s0_A1, true_s1_A1, estim_s0_A1, estim_s1_A1):
     """
     Computes the gap between the estimated independence and the true independence.
     Positive (negative) values thus represent a tendency to overestimate (underestimate) the true value.
     """
-    true_inds = independence(true_s0_A1, true_s1_A1)
-    estim_inds = independence(estim_s0_A1, estim_s1_A1)
-    gaps = estim_inds - true_inds
-    return gaps
+    true_inds = independence_gap(true_s0_A1, true_s1_A1)
+    estim_inds = independence_gap(estim_s0_A1, estim_s1_A1)
+    errors = estim_inds - true_inds
+    return errors
 
 
 def independence_abs_error(true_s0_A1, true_s1_A1, estim_s0_A1, estim_s1_A1):
@@ -427,7 +426,7 @@ def independence_abs_error(true_s0_A1, true_s1_A1, estim_s0_A1, estim_s1_A1):
     Computes the error (absolute value of the gaps) between the estimated independence and the true independence.
     Errors are always non-zero.
     """
-    errors = np.abs(independence_gap(true_s0_A1, true_s1_A1, estim_s0_A1, estim_s1_A1))
+    errors = np.abs(estim_signed_error(true_s0_A1, true_s1_A1, estim_s0_A1, estim_s1_A1))
     return errors
 
 
@@ -436,5 +435,5 @@ def independence_sqr_error(true_s0_A1, true_s1_A1, estim_s0_A1, estim_s1_A1):
     Computes the error (absolute value of the gaps) between the estimated independence and the true independence.
     Errors are always non-zero.
     """
-    errors = independence_gap(true_s0_A1, true_s1_A1, estim_s0_A1, estim_s1_A1) ** 2
+    errors = estim_signed_error(true_s0_A1, true_s1_A1, estim_s0_A1, estim_s1_A1) ** 2
     return errors

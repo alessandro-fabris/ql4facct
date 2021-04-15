@@ -10,17 +10,17 @@ def generate_tables(protocol: Protocols, outs: List[Result], table_path):
     allresults = Result.concat(outs).select_protocol(protocol)
     method_names = allresults.data['Q_name'].unique()
 
-    columns = ['Gap', '$|\mathrm{Error}|$', 'Error$^2$']
+    columns = ['Error', '$|\mathrm{Error}|$', 'Error$^2$']
     table = Table(columns, list(method_names), lower_is_better=True, ttest='wilcoxon', prec_mean=3, show_std=True,
                   prec_std=3, average=False, color=False)
 
     for Q_name in method_names:
         results = allresults.filter('Q_name', Q_name)
         print(f'{Q_name} has {len(results)} outs')
-        gap = results.independence_gap()
+        s_error = results.independence_signed_error()
         abs_error = results.independence_abs_error()
         sqr_error = results.independence_sqr_error()
-        table.add('Gap', Q_name, values=gap)
+        table.add('Error', Q_name, values=s_error)
         table.add('$|\mathrm{Error}|$', Q_name, values=abs_error)
         table.add('Error$^2$', Q_name, values=sqr_error)
 

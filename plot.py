@@ -13,7 +13,7 @@ def _boxplot_from_dict(d, filename, xlab='x_axis', tit=''):
     df.sort_values("x_axis")
     ax = plt.gca()
     ax.axhline(0, 0, 1, linestyle='--', color='k', label='optimal', zorder=0)
-    sns.boxplot(x="x_axis", y="y_axis", hue="quant", data=df).set(xlabel=xlab, ylabel='Independence Gap')
+    sns.boxplot(x="x_axis", y="y_axis", hue="quant", data=df).set(xlabel=xlab, ylabel='Estimation error')
     sns.despine(offset=10, trim=True)
     plt.title(tit)
     plt.savefig(filename)
@@ -46,12 +46,12 @@ def plot_prot1prev(results: Result, plotdir='./plots'):
     method_names = results.data['Q_name'].unique()
     for Q_name in method_names:
         Q_df = results.filter('Q_name', Q_name)
-        gap = Q_df.independence_gap()
+        err = Q_df.independence_signed_error()
 
         pAeqY = np.around(Q_df.data['p_Aeqy'], decimals=2)
         vary_prev_D1["x_axis"].extend(pAeqY)
-        vary_prev_D1["quant"].extend([Q_name] * len(gap))
-        vary_prev_D1["y_axis"].extend(gap)
+        vary_prev_D1["quant"].extend([Q_name] * len(err))
+        vary_prev_D1["y_axis"].extend(err)
 
     _boxplot_from_dict(vary_prev_D1,
                        os.path.join(plotdir, "protD1_vary_prev_d1.pdf"),
@@ -64,13 +64,13 @@ def plot_prot1flip(results:Result, plotdir='./plots'):
     method_names = results.data['Q_name'].unique()
     for Q_name in method_names:
         Q_df = results.filter('Q_name', Q_name)
-        gap = Q_df.independence_gap()
-        indep = Q_df.independence_true()
+        err = Q_df.independence_signed_error()
+        indep_gap = Q_df.independence_gap()
 
-        indep = np.around(indep, decimals=1)
-        vary_prev_D1["x_axis"].extend(list(indep))
-        vary_prev_D1["y_axis"].extend(list(gap))
-        vary_prev_D1["quant"].extend([Q_name] * len(gap))
+        indep_gap = np.around(indep_gap, decimals=1)
+        vary_prev_D1["x_axis"].extend(list(indep_gap))
+        vary_prev_D1["y_axis"].extend(list(err))
+        vary_prev_D1["quant"].extend([Q_name] * len(err))
 
     _boxplot_from_dict(vary_prev_D1,
                        os.path.join(plotdir, 'protD1_vary_prev_d1_flip.pdf'),
@@ -85,10 +85,10 @@ def plot_prot2size(results:Result, plotdir='./plots'):
 
     for Q_name in method_names:
         Q_df = results.filter('Q_name', Q_name)
-        gap = Q_df.independence_gap()
+        err = Q_df.independence_signed_error()
         vary_size_D2["x_axis"].extend(list(Q_df.data['size_D2']))
-        vary_size_D2["y_axis"].extend(list(gap))
-        vary_size_D2["quant"].extend([Q_name] * len(gap))
+        vary_size_D2["y_axis"].extend(list(err))
+        vary_size_D2["quant"].extend([Q_name] * len(err))
 
     _boxplot_from_dict(vary_size_D2,
                        os.path.join(plotdir, 'protD2_vary_size.pdf'),
@@ -106,17 +106,17 @@ def plot_prot2prev(results:Result, plotdir='./plots'):
         Q_df = results.filter('Q_name', Q_name)
 
         var_s0 = Q_df.filter('var_s', 0)
-        gap = var_s0.independence_gap()
+        err = var_s0.independence_signed_error()
         vary_prev_D20["x_axis"].extend(list(var_s0.data['D2_s0_prev']))
-        vary_prev_D20["y_axis"].extend(list(gap))
-        vary_prev_D20["quant"].extend([Q_name] * len(gap))
+        vary_prev_D20["y_axis"].extend(list(err))
+        vary_prev_D20["quant"].extend([Q_name] * len(err))
         orig_prev_D30 = var_s0.data['D3_s0_prev'].mean()
 
         var_s1 = Q_df.filter('var_s', 1)
-        gap = var_s1.independence_gap()
+        err = var_s1.independence_signed_error()
         vary_prev_D21["x_axis"].extend(list(var_s1.data['D2_s1_prev']))
-        vary_prev_D21["y_axis"].extend(list(gap))
-        vary_prev_D21["quant"].extend([Q_name] * len(gap))
+        vary_prev_D21["y_axis"].extend(list(err))
+        vary_prev_D21["quant"].extend([Q_name] * len(err))
         orig_prev_D31 = var_s0.data['D3_s1_prev'].mean()
 
     title = "Test ($\mathcal{D}_3$) prevalence for quantifier: "
@@ -140,17 +140,17 @@ def plot_prot3prev(results:Result, plotdir='./plots'):
         Q_df = results.filter('Q_name', Q_name)
 
         var_s0 = Q_df.filter('var_s', 0)
-        gap = var_s0.independence_gap()
+        err = var_s0.independence_signed_error()
         vary_prev_D30["x_axis"].extend(list(var_s0.data['trueD3s0A1']))
-        vary_prev_D30["y_axis"].extend(list(gap))
-        vary_prev_D30["quant"].extend([Q_name] * len(gap))
+        vary_prev_D30["y_axis"].extend(list(err))
+        vary_prev_D30["quant"].extend([Q_name] * len(err))
         orig_prev_D20 = var_s0.data['D2_s0_prev'].mean()
 
         var_s1 = Q_df.filter('var_s', 1)
-        gap = var_s1.independence_gap()
+        err = var_s1.independence_signed_error()
         vary_prev_D31["x_axis"].extend(list(var_s1.data['trueD3s1A1']))
-        vary_prev_D31["y_axis"].extend(list(gap))
-        vary_prev_D31["quant"].extend([Q_name] * len(gap))
+        vary_prev_D31["y_axis"].extend(list(err))
+        vary_prev_D31["quant"].extend([Q_name] * len(err))
         orig_prev_D21 = var_s0.data['D2_s1_prev'].mean()
 
     title = "Training ($\mathcal{D}_2$) prevalence for quantifier: "

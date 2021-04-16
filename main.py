@@ -3,10 +3,9 @@ import os
 from os.path import join
 from sklearn.linear_model import LogisticRegression
 from sklearn.svm import LinearSVC
-
 from data import adultcsv_loader
 from common import *
-from quapy.method.aggregative import CC, ACC, PACC, EMQ, HDy
+from quapy.method.aggregative import CC, PCC, ACC, PACC, EMQ, HDy
 from common import Protocols
 from tabular import generate_tables
 from plot import generate_plots
@@ -19,13 +18,13 @@ from plot import generate_plots
 qp.environ['SAMPLE_SIZE'] = 100
 
 model_selection = False
-datasplit_repetitions = 1
+datasplit_repetitions = 5
 data_path = "datasets/adult.csv"
 data_loader = adultcsv_loader
 protected_attr = "gender"
 options = {
     'nprevs': 11,
-    'nreps': 5,
+    'nreps': 10,
     'sample_size': 500
 }
 result_dir = './results'
@@ -49,10 +48,11 @@ def classifiers():
 # --------------------------------------------
 def quantifiers():
     yield 'CC', CC
-    # yield 'ACC', ACC
+    yield 'PCC', PCC
+    yield 'ACC', ACC
     yield 'PACC', PACC
     yield 'EMQ', EMQ
-    # yield 'HDy', HDy
+    yield 'HDy', HDy
 
 
 # instantiate all quantifiers x classifiers (wrapped also within model selection if requested)
@@ -80,7 +80,7 @@ def dataset_name():
 
 def run_name():
     options_par = '_'.join(f'{key}{options[key]}' for key in sorted(options.keys()))
-    return f'{dataset_name()}_{Q_name}_f{fname}_Run{run}_{protocol}_{options_par}.pkl'
+    return f'{dataset_name()}_{Q_name}_f{fname}_Run{run}_{protocol}_{options_par}_modsel{model_selection}.pkl'
 
 
 # --------------------------------------------

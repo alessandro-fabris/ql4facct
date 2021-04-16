@@ -72,6 +72,16 @@ def compascsv_loader(path, protected_attr, covariates=None, dummies=None, races_
     if not all(d in covariates for d in dummies):
         print('warning: some dummy-features are not in covariates')
         dummies = [d for d in dummies if d in covariates]
+
+    def compas_strandard_preproc(df):
+        df = df[df['days_b_screening_arrest'] <= 30]
+        df = df[df['days_b_screening_arrest'] >= -30]
+        df = df[df['is_recid'] != -1]
+        df = df[df['c_charge_degree'] != 'O']
+        df = df[df['score_text'] != 'N/A']
+        df.reset_index(drop=True, inplace=True)
+        return df
+
     df = pd.read_csv(path)
     df = compas_strandard_preproc(df)
     df = df[df['race'].isin(races_keep)]
@@ -86,7 +96,7 @@ def compascsv_loader(path, protected_attr, covariates=None, dummies=None, races_
     X = X.values
 
     # process predictor
-    pos_y_cl = 1
+    pos_y_cl = 0
     y_col = 'is_recid'
     y = qp.data.binarize(df[y_col], pos_class=pos_y_cl)
 
@@ -99,16 +109,44 @@ def compascsv_loader(path, protected_attr, covariates=None, dummies=None, races_
     return X, y, A
 
 
-def compas_strandard_preproc(df):
-    df = df[df['days_b_screening_arrest'] <= 30]
-    df = df[df['days_b_screening_arrest'] >= -30]
-    df = df[df['is_recid'] != -1]
-    df = df[df['c_charge_degree'] != 'O']
-    df = df[df['score_text'] != 'N/A']
-    df.reset_index(drop=True, inplace=True)
-    return df
+def ccdefaultcsv_loader(path, protected_attr, covariates=None, dummies=None, drop_first_dummy=True, verbose=True):
 
+    if covariates is None:
+        covariates = ['LIMIT_BAL', 'EDUCATION', 'MARRIAGE', 'AGE', 'PAY_0', 'PAY_2', 'PAY_3', 'PAY_4', 'PAY_5', 'PAY_6',
+                      'BILL_AMT1', 'BILL_AMT2', 'BILL_AMT3', 'BILL_AMT4', 'BILL_AMT5', 'BILL_AMT6',
+                      'PAY_AMT1', 'PAY_AMT2', 'PAY_AMT3', 'PAY_AMT4', 'PAY_AMT5', 'PAY_AMT6']
 
+    if dummies is None:
+        dummies = ['EDUCATION', 'MARRIAGE', 'PAY_0', 'PAY_2', 'PAY_3', 'PAY_4', 'PAY_5', 'PAY_6']
+
+    privileged = {'SEX': 1}
+    assert protected_attr in privileged, f'unknown protected attribute; valid are {privileged.keys()}'
+
+    if not all(d in covariates for d in dummies):
+        print('warning: some dummy-features are not in covariates')
+        dummies = [d for d in dummies if d in covariates]
+    df = pd.read_csv(path)
+
+    # process covariates
+    X = df[covariates]
+    for dummy in dummies:
+        df_dum = pd.get_dummies(X[dummy], prefix=dummy, drop_first=drop_first_dummy)
+        X = pd.concat([X, df_dum], axis=1)
+        X.drop(dummy, axis=1, inplace=True)
+    X = X.values
+
+    # process predictor
+    pos_y_cl = 0
+    y_col = 'default payment next month'
+    y = qp.data.binarize(df[y_col], pos_class=pos_y_cl)
+
+    # process protected attribute
+    A = qp.data.binarize(df[protected_attr], pos_class=privileged[protected_attr])
+
+    if verbose:
+        print(f'A=1 is {protected_attr}:{privileged[protected_attr]}; y=1 is {y_col}:{pos_y_cl}')
+
+    return X, y, A
 
 
 

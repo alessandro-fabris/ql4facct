@@ -249,6 +249,10 @@ def eval_prevalence_variations_D1_flip(D1, D2, D3, AD1, classifier, quantifier, 
             D2_y1, D2_y0 = classify(f, D2)
             D3_y1, D3_y0 = classify(f, D3)
 
+            if any(D2_y1.prevalence()*len(D2_y1) <=20) or any(D2_y0.prevalence()*len(D2_y0) <=20):
+                with open("flag_prev", 'at') as fo:
+                    fo.write(f"D2_y1: {D2_y1.prevalence()*len(D2_y1)}, D2_y0: {D2_y0.prevalence()*len(D2_y0)}")
+
             M1 = deepcopy(quantifier).fit(D2_y1)
             M0 = deepcopy(quantifier).fit(D2_y0)
 

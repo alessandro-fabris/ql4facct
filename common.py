@@ -162,8 +162,8 @@ def eval_prevalence_variations_D1(D1, D2, D3, AD1, classifier, quantifier, sampl
 
         if not at_least_npos(D2_y1, npos=5): continue
         if not at_least_npos(D2_y0, npos=5): continue
-        if not at_least_nneg(D2_y1, npos=5): continue
-        if not at_least_nneg(D2_y0, npos=5): continue
+        if not at_least_nneg(D2_y1, nneg=5): continue
+        if not at_least_nneg(D2_y0, nneg=5): continue
 
         M1 = deepcopy(quantifier).fit(D2_y1)
         M0 = deepcopy(quantifier).fit(D2_y0)
@@ -238,8 +238,8 @@ def eval_prevalence_variations_D1_flip(D1, D2, D3, AD1, classifier, quantifier, 
 
             if not at_least_npos(D2_y1, npos=5): continue
             if not at_least_npos(D2_y0, npos=5): continue
-            if not at_least_nneg(D2_y1, npos=5): continue
-            if not at_least_nneg(D2_y0, npos=5): continue
+            if not at_least_nneg(D2_y1, nneg=5): continue
+            if not at_least_nneg(D2_y0, nneg=5): continue
 
             M1 = deepcopy(quantifier).fit(D2_y1)
             M0 = deepcopy(quantifier).fit(D2_y0)

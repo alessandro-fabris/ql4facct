@@ -135,9 +135,6 @@ def classify(classifier:BaseEstimator, data:LabelledCollection):
 def eval_prevalence_variations_D1(D1, D2, D3, AD1, classifier, quantifier, sample_size=500, nprevs=101, nreps=2):
     D1indexesAeqY = LabelledCollection(instances=np.arange(len(D1)), labels=D1.labels==AD1)
 
-    #idcs_00_11 = [i for i, (y,a) in enumerate(zip(D1.labels, AD1)) if (a == 0 and y == 0) or (a == 1 and y == 1)]
-    #idcs_01_10 = [i for i, (y,a) in enumerate(zip(D1.labels, AD1)) if (a == 0 and y == 1) or (a == 1 and y == 0)]
-    #assert len(idcs_00_11) + len(idcs_01_10) == len(D1.labels)
     true_M0_A1, true_M1_A1 = [], []
     estim_M0_A1, estim_M1_A1 = [], []
     p_Aeqy = []
@@ -163,36 +160,6 @@ def eval_prevalence_variations_D1(D1, D2, D3, AD1, classifier, quantifier, sampl
 
         prevAeqY = D1indexesAeqY.labels[idcs].mean()
         p_Aeqy.append(prevAeqY)
-    """
-    prevs = np.linspace(0., 1., nprevs, endpoint=True)
-    for prev in prevs:
-        for _ in range(nreps):
-            sample_size_00_11 = int(round(prev*sample_size))
-            sample_size_01_10 = sample_size - sample_size_00_11
-            idcs_sample = np.concatenate([
-                np.random.permutation(idcs_00_11)[:sample_size_00_11],
-                np.random.permutation(idcs_01_10)[:sample_size_01_10]
-            ])
-            sample_D1 = D1.sampling_from_index(idcs_sample)
-            #sample_D1 = LabelledCollection([D1.instances[i] for i in idcs_sample], [D1.labels[i] for i in idcs_sample])
-
-            assert sample_D1.prevalence().prod() != 0
-            f = classifier.fit(*sample_D1.Xy)
-
-            D2_y1, D2_y0 = classify(f, D2)
-            D3_y1, D3_y0 = classify(f, D3)
-
-            M1 = deepcopy(quantifier).fit(D2_y1)
-            M0 = deepcopy(quantifier).fit(D2_y0)
-
-            estim_M1_A1.append(M1.quantify(D3_y1.instances)[1])
-            estim_M0_A1.append(M0.quantify(D3_y0.instances)[1])
-
-            true_M1_A1.append(D3_y1.prevalence()[1])
-            true_M0_A1.append(D3_y0.prevalence()[1])
-
-            p_Aeqy.append(prev)
-            """
 
     return Result.with_columns(Protocols.VAR_D1_PREV, true_M0_A1, true_M1_A1, estim_M0_A1, estim_M1_A1, p_Aeqy=p_Aeqy)
 

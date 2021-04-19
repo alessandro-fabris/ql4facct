@@ -132,6 +132,14 @@ def classify(classifier:BaseEstimator, data:LabelledCollection):
     return pred_positives, pred_negatives
 
 
+def at_least_npos(data:LabelledCollection, npos:int):
+    return data.labels.sum()>=npos
+
+
+def at_least_nneg(data:LabelledCollection, nneg:int):
+    return len(data.labels) - data.labels.sum() >= nneg
+
+
 def eval_prevalence_variations_D1(D1, D2, D3, AD1, classifier, quantifier, sample_size=500, nprevs=101, nreps=2):
     D1indexesAeqY = LabelledCollection(instances=np.arange(len(D1)), labels=D1.labels==AD1)
 
@@ -148,6 +156,11 @@ def eval_prevalence_variations_D1(D1, D2, D3, AD1, classifier, quantifier, sampl
 
         D2_y1, D2_y0 = classify(f, D2)
         D3_y1, D3_y0 = classify(f, D3)
+
+        if not at_least_npos(D2_y1, npos=5): continue
+        if not at_least_npos(D2_y0, npos=5): continue
+        if not at_least_nneg(D2_y1, nneg=5): continue
+        if not at_least_nneg(D2_y0, nneg=5): continue
 
         M1 = deepcopy(quantifier).fit(D2_y1)
         M0 = deepcopy(quantifier).fit(D2_y0)
@@ -219,6 +232,11 @@ def eval_prevalence_variations_D1_flip(D1, D2, D3, AD1, classifier, quantifier, 
             if any(D2_y1.prevalence()*len(D2_y1) <=20) or any(D2_y0.prevalence()*len(D2_y0) <=20):
                 with open("flag_prev", 'at') as fo:
                     fo.write(f"D2_y1: {D2_y1.prevalence()*len(D2_y1)}, D2_y0: {D2_y0.prevalence()*len(D2_y0)}")
+
+            if not at_least_npos(D2_y1, npos=5): continue
+            if not at_least_npos(D2_y0, npos=5): continue
+            if not at_least_nneg(D2_y1, nneg=5): continue
+            if not at_least_nneg(D2_y0, nneg=5): continue
 
             M1 = deepcopy(quantifier).fit(D2_y1)
             M0 = deepcopy(quantifier).fit(D2_y0)

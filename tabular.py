@@ -11,7 +11,7 @@ def generate_tables(protocol: Protocols, outs: List[Result], table_path):
     method_names = allresults.data['Q_name'].unique()
 
     columns = ['Error', '$|\mathrm{Error}|$', 'Error$^2$']
-    table = Table(columns, list(method_names), lower_is_better=True, ttest='wilcoxon', prec_mean=3, show_std=True,
+    table = Table(columns, list(method_names), lower_is_better=True, ttest='ttest', prec_mean=3, show_std=True,
                   prec_std=3, average=False, color=False)
 
     for Q_name in method_names:

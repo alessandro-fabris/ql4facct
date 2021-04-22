@@ -1,16 +1,8 @@
-altri datasets
-altri A
-new column P[|MAE|<0.1]
 new colums Quantif Diff in D3_s0, and in D3_s1
-rename columns
 tracciare sizes di tutto / #(A)
 test ACC(kFCV)
-standardizzare???
-dataset CC_default -- sometimes the split that f generates contains some empty set... should we try with class_weight=balanced?
-
 fix "lower_is_better" in GAP metric (should be "closer-to-zero is better"
 add quantification error wrt to D3_s0 and D3_s1 in tables?
-control methods order in tables / plots
 mettere in tutti i protocolli un sanity check che verifica di avere un minimo di data points (decidere quanti)
        di ogni classe (maschi e femmine) nei training set dei quantificatori
 Notice P(A=0, y=1)<0.04, i.e. rich women are rare.
@@ -19,9 +11,5 @@ This is a bottleneck for quantification, e.g. in the vary_D2_size protocol, when
 should we have different sample_size for D21, D20 to reflect the prevalence of hat_y in the data?
 should we have different sample_size for D31, D30 to reflect the prevalence of hat_y in the data?
 
-plot D1 flip: x_axis should it not be probAeqY?
 clean print outputs
 mixed protocol (e.g. VAR_D1_PREVFLIP + VAR_D3_PREV)
-add Credit Card Default
-finalize tables and plots
-argparse

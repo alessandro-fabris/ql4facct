@@ -2,6 +2,8 @@ import numpy as np
 import itertools
 from scipy.stats import ttest_ind_from_stats, wilcoxon
 from typing import List
+
+import quapy.error
 from common import Protocols, Result
 
 
@@ -10,8 +12,16 @@ def generate_tables(protocol: Protocols, outs: List[Result], table_path):
     allresults = Result.concat(outs).select_protocol(protocol)
     method_names = allresults.data['Q_name'].unique()
 
-    columns = ['Error', '$|\mathrm{Error}|$', 'Error$^2$']
-    table = Table(columns, list(method_names), lower_is_better=True, ttest='ttest', prec_mean=3, show_std=True,
+    QerrMAED3s0 = 'MAE$_{D_3^0}$'
+    QerrMAED3s1 = 'MAE$_{D_3^1}$'
+    Pr01 = '$P(\mathrm{MAE}<0.1)$'
+    columns = ['Diff', 'MAE', 'MSE', QerrMAED3s0, QerrMAED3s1, Pr01]
+    table = Table(columns, list(method_names),
+                  lower_is_better=['MAE', 'MSE', QerrMAED3s0, QerrMAED3s1],
+                  zero_is_better=['Diff'],
+                  greater_is_better=[Pr01],
+                  ttest='ttest', prec_mean=3,
+                  show_std=['Diff', 'MAE', 'MSE', QerrMAED3s0, QerrMAED3s1],
                   prec_std=3, average=False, color=False)
 
     for Q_name in method_names:
@@ -20,9 +30,16 @@ def generate_tables(protocol: Protocols, outs: List[Result], table_path):
         s_error = results.independence_signed_error()
         abs_error = results.independence_abs_error()
         sqr_error = results.independence_sqr_error()
-        table.add('Error', Q_name, values=s_error)
-        table.add('$|\mathrm{Error}|$', Q_name, values=abs_error)
-        table.add('Error$^2$', Q_name, values=sqr_error)
+        qs0 = results.D3s0_abs_error()
+        qs1 = results.D3s1_abs_error()
+        p01 = (abs_error<0.1)*1
+
+        table.add('Diff', Q_name, values=s_error)
+        table.add('MAE', Q_name, values=abs_error)
+        table.add('MSE', Q_name, values=sqr_error)
+        table.add(QerrMAED3s0, Q_name, values=qs0)
+        table.add(QerrMAED3s1, Q_name, values=qs1)
+        table.add(Pr01, Q_name, values=p01)
 
     with open(table_path, 'wt') as foo:
         foo.write(table.latexTabularMxB(average=False))
@@ -34,7 +51,11 @@ class Table:
 
     VALID_TESTS = [None, "wilcoxon", "ttest"]
 
-    def __init__(self, benchmarks, methods, lower_is_better=True, ttest='ttest', prec_mean=3,
+    def __init__(self, benchmarks, methods,
+                 lower_is_better=True,
+                 greater_is_better=False,
+                 zero_is_better=False,
+                 ttest='ttest', prec_mean=3,
                  clean_zero=False, show_std=False, prec_std=3, average=True, missing=None, missing_str='--', color=True):
         assert ttest in self.VALID_TESTS, f'unknown test, valid are {self.VALID_TESTS}'
 
@@ -47,7 +68,19 @@ class Table:
         self.map = {}  
         # keyed (#rows,#cols)-ndarrays holding computations from self.map['values']
         self._addmap('values', dtype=object)
-        self.lower_is_better = lower_is_better
+
+        def __x_is_better(flag):
+            if flag is True:
+                return benchmarks
+            elif flag is False:
+                return []
+            else:
+                return flag
+
+        self.lower_is_better = __x_is_better(lower_is_better)
+        self.greater_is_better = __x_is_better(greater_is_better)
+        self.zero_is_better = __x_is_better(zero_is_better)
+
         self.ttest = ttest
         self.prec_mean = prec_mean
         self.clean_zero = clean_zero
@@ -99,9 +132,15 @@ class Table:
         for i in range(self.nbenchmarks):
             filled_cols_idx = np.argwhere(self.map['fill'][i]).flatten()
             col_means = [self.map['mean'][i,j] for j in filled_cols_idx]
+
+            benchmark = self.benchmarks[i]
+            if benchmark in self.greater_is_better:
+                col_means = [-x for x in col_means]
+            elif benchmark in self.zero_is_better:
+                col_means = np.abs(col_means)
+
             ranked_cols_idx = filled_cols_idx[np.argsort(col_means)]
-            if not self.lower_is_better:
-                ranked_cols_idx = ranked_cols_idx[::-1]
+
             self.map['rank'][i, ranked_cols_idx] = np.arange(1, len(filled_cols_idx)+1)
             
     def _addcolor(self):
@@ -119,7 +158,7 @@ class Table:
                     normval = (val - minval) / norm
                 else:
                     normval = 0.5
-                if self.lower_is_better:
+                if self.benchmarks[i] in self.lower_is_better:
                     normval = 1 - normval
                 self.map['color'][i, col_idx] = color_red2green_01(normval)
 
@@ -262,11 +301,12 @@ class Table:
 
         std = ''
         if self.show_std:
-            std = self.map['std'][i,j]
-            std = f" {std:.{self.prec_std}f}"
-            if self.clean_zero:
-                std = std.replace(' 0.', '.')
-            std = f" \pm {std:{self.prec_std}}"
+            if self.show_std is True or (isinstance(self.show_std, list) and benchmark in self.show_std):
+                std = self.map['std'][i,j]
+                std = f" {std:.{self.prec_std}f}"
+                if self.clean_zero:
+                    std = std.replace(' 0.', '.')
+                std = f" \pm {std:{self.prec_std}}"
 
         if stat!='' or std!='':
             l = f'{l}${stat}{std}$'

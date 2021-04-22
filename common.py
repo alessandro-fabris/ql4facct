@@ -50,6 +50,14 @@ class Result:
         d = self.data
         return independence_abs_error(d['trueD3s0A1'], d['trueD3s1A1'], d['estimD3s0A1'], d['estimD3s1A1'])
 
+    def D3s0_abs_error(self):
+        d = self.data
+        return qp.error.ae(d['trueD3s0A1'].values.reshape(-1,1), d['estimD3s0A1'].values.reshape(-1,1))
+
+    def D3s1_abs_error(self):
+        d = self.data
+        return qp.error.ae(d['trueD3s1A1'].values.reshape(-1,1), d['estimD3s1A1'].values.reshape(-1,1))
+
     def independence_sqr_error(self):
         d = self.data
         return independence_sqr_error(d['trueD3s0A1'], d['trueD3s1A1'], d['estimD3s0A1'], d['estimD3s1A1'])

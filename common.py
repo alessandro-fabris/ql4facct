@@ -143,9 +143,6 @@ def at_least_nneg(data:LabelledCollection, nneg:int):
 def eval_prevalence_variations_D1(D1, D2, D3, AD1, classifier, quantifier, sample_size=500, nprevs=101, nreps=2):
     D1indexesAeqY = LabelledCollection(instances=np.arange(len(D1)), labels=D1.labels==AD1)
 
-    #idcs_00_11 = [i for i, (y,a) in enumerate(zip(D1.labels, AD1)) if (a == 0 and y == 0) or (a == 1 and y == 1)]
-    #idcs_01_10 = [i for i, (y,a) in enumerate(zip(D1.labels, AD1)) if (a == 0 and y == 1) or (a == 1 and y == 0)]
-    #assert len(idcs_00_11) + len(idcs_01_10) == len(D1.labels)
     true_M0_A1, true_M1_A1 = [], []
     estim_M0_A1, estim_M1_A1 = [], []
     p_Aeqy = []

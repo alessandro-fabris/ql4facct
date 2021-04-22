@@ -1,3 +1,13 @@
+altri datasets
+altri A
+new column P[|MAE|<0.1]
+new colums Quantif Diff in D3_s0, and in D3_s1
+rename columns
+tracciare sizes di tutto / #(A)
+test ACC(kFCV)
+standardizzare???
+dataset CC_default -- sometimes the split that f generates contains some empty set... should we try with class_weight=balanced?
+
 fix "lower_is_better" in GAP metric (should be "closer-to-zero is better"
 add quantification error wrt to D3_s0 and D3_s1 in tables?
 control methods order in tables / plots

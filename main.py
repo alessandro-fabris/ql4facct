@@ -30,7 +30,8 @@ plot_dir = './plots'
 
 skip_already_computed = True  # set to False to force re-generation of experiments
 
-f = LogisticRegression()
+fclassweight='balanced'  # or None
+f = LogisticRegression(class_weight=fclassweight)
 fname = 'LR'
 
 
@@ -55,9 +56,9 @@ def quantifiers():
 # Define the quantifiers we would like to test
 # --------------------------------------------
 def datasets():
-    yield 'adult', "datasets/adult.csv", adultcsv_loader, "gender"
-    yield 'compas', "datasets/compas-scores-two-years.csv", compascsv_loader, "race"
-    # yield 'cc_default', "datasets/default of credit card clients.csv", ccdefaultcsv_loader, "SEX"
+    #yield 'adult', "datasets/adult.csv", adultcsv_loader, "gender"
+    #yield 'compas', "datasets/compas-scores-two-years.csv", compascsv_loader, "race"
+    yield 'cc_default', "datasets/default of credit card clients.csv", ccdefaultcsv_loader, "SEX"
 
 
 # instantiate all quantifiers x classifiers (wrapped also within model selection if requested)
@@ -82,7 +83,8 @@ def iter_quantifiers(model_selection=True):
 
 def run_name():
     options_par = '_'.join(f'{key}{options[key]}' for key in sorted(options.keys()))
-    return f'{dataset_name}_{Q_name}_f{fname}_Run{run}_{protocol}_{options_par}_modsel{model_selection}.pkl'
+    fmode = 'default' if fclassweight is None else 'balanced'
+    return f'{dataset_name}_{Q_name}_f{fname}_Run{run}_{protocol}_{options_par}_modsel{model_selection}_fclassweight={fmode}.pkl'
 
 
 # --------------------------------------------

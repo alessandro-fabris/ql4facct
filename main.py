@@ -83,8 +83,8 @@ def iter_quantifiers(model_selection=True):
 
 def run_name():
     options_par = '_'.join(f'{key}{options[key]}' for key in sorted(options.keys()))
-    fmode = 'default' if fclassweight is None else 'balanced'
-    return f'{dataset_name}_{Q_name}_f{fname}_Run{run}_{protocol}_{options_par}_modsel{model_selection}_fclassweight={fmode}.pkl'
+    fmode = '' if fclassweight is None else '_fclassweight=balanced'
+    return f'{dataset_name}_{Q_name}_f{fname}_Run{run}_{protocol}_{options_par}_modsel{model_selection}{fmode}.pkl'
 
 
 # --------------------------------------------

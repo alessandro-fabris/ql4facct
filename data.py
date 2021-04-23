@@ -1,3 +1,5 @@
+import sklearn
+
 import quapy as qp
 import pandas as pd
 
@@ -134,6 +136,8 @@ def ccdefaultcsv_loader(path, protected_attr, covariates=None, dummies=None, dro
         X = pd.concat([X, df_dum], axis=1)
         X.drop(dummy, axis=1, inplace=True)
     X = X.values
+    scaler = sklearn.preprocessing.StandardScaler()
+    X = scaler.fit_transform(X)
 
     # process predictor
     pos_y_cl = 0

@@ -1,6 +1,8 @@
 import pathlib
 import os
 from os.path import join
+
+import sklearn
 from sklearn.linear_model import LogisticRegression
 from sklearn.svm import LinearSVC
 from data import adultcsv_loader, compascsv_loader, ccdefaultcsv_loader
@@ -30,7 +32,7 @@ plot_dir = './plots'
 
 skip_already_computed = True  # set to False to force re-generation of experiments
 
-fclassweight=None
+fclassweight='balanced'
 f = LogisticRegression(class_weight=fclassweight)
 fname = 'LR'
 
@@ -39,7 +41,7 @@ fname = 'LR'
 # --------------------------------------------
 def classifiers():
     hyperparams = {'C': np.logspace(-3,3,7), 'class_weight': ['balanced', None]}
-    yield 'LR', LogisticRegression(), hyperparams
+    yield 'LR', LogisticRegression(class_weight='balanced'), hyperparams
 
 
 # Define the quantifiers we would like to test
@@ -58,7 +60,7 @@ def quantifiers():
 def datasets():
     yield 'adult', "datasets/adult.csv", adultcsv_loader, "gender"
     yield 'compas', "datasets/compas-scores-two-years.csv", compascsv_loader, "race"
-    # yield 'cc_default', "datasets/default of credit card clients.csv", ccdefaultcsv_loader, "SEX"
+    yield 'cc_default', "datasets/default of credit card clients.csv", ccdefaultcsv_loader, "SEX"
 
 
 # instantiate all quantifiers x classifiers (wrapped also within model selection if requested)
@@ -100,6 +102,8 @@ os.makedirs(plot_dir, exist_ok=True)
 for dataset_name, data_path, loader, protected in datasets():
     dataset_name = f'{dataset_name}_{protected}'
     X, y, A = loader(data_path, protected_attr=protected)
+    scaler = sklearn.preprocessing.StandardScaler()
+    X = scaler.fit_transform(X)
 
     results = []
     for run, (D1, D2, D3, AD1) in enumerate(gen_split_data(X, y, A, repetitions=datasplit_repetitions)):

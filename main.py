@@ -26,9 +26,9 @@ options = {
     'nreps': 10,
     'sample_size': 500
 }
-result_dir = './results'
-table_dir = './tables'
-plot_dir = './plots'
+result_dir = './results_bal'
+table_dir = './tables_bal'
+plot_dir = './plots_bal'
 
 skip_already_computed = True  # set to False to force re-generation of experiments
 
@@ -42,6 +42,7 @@ fname = 'LR'
 def classifiers():
     hyperparams = {'C': np.logspace(-3,3,7), 'class_weight': ['balanced', None]}
     yield 'LR', LogisticRegression(class_weight='balanced'), hyperparams
+    yield 'SVM', LinearSVC(class_weight='balanced'), hyperparams
 
 
 # Define the quantifiers we would like to test

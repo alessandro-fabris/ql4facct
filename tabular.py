@@ -15,13 +15,13 @@ def generate_tables(protocol: Protocols, outs: List[Result], table_path):
     QerrMAED3s0 = 'MAE$_{D_3^0}$'
     QerrMAED3s1 = 'MAE$_{D_3^1}$'
     Pr01 = '$P(\mathrm{MAE}<0.1)$'
-    columns = ['Diff', 'MAE', 'MSE', QerrMAED3s0, QerrMAED3s1, Pr01]
+    Pr02 = '$P(\mathrm{MAE}<0.2)$'
+    columns = ['MAE', 'MSE', QerrMAED3s0, QerrMAED3s1, Pr01, Pr02]
     table = Table(columns, list(method_names),
                   lower_is_better=['MAE', 'MSE', QerrMAED3s0, QerrMAED3s1],
-                  zero_is_better=['Diff'],
-                  greater_is_better=[Pr01],
+                  greater_is_better=[Pr01, Pr02],
                   ttest='ttest', prec_mean=3,
-                  show_std=['Diff', 'MAE', 'MSE', QerrMAED3s0, QerrMAED3s1],
+                  show_std=['MAE', 'MSE', QerrMAED3s0, QerrMAED3s1],
                   prec_std=3, average=False, color=False)
 
     for Q_name in method_names:
@@ -33,13 +33,14 @@ def generate_tables(protocol: Protocols, outs: List[Result], table_path):
         qs0 = results.D3s0_abs_error()
         qs1 = results.D3s1_abs_error()
         p01 = (abs_error<0.1)*1
+        p02 = (abs_error<0.2)*1
 
-        table.add('Diff', Q_name, values=s_error)
         table.add('MAE', Q_name, values=abs_error)
         table.add('MSE', Q_name, values=sqr_error)
         table.add(QerrMAED3s0, Q_name, values=qs0)
         table.add(QerrMAED3s1, Q_name, values=qs1)
         table.add(Pr01, Q_name, values=p01)
+        table.add(Pr02, Q_name, values=p02)
 
     with open(table_path, 'wt') as foo:
         foo.write(table.latexTabularMxB(average=False))

@@ -5,6 +5,7 @@ from os.path import join
 import sklearn
 from sklearn.linear_model import LogisticRegression
 from sklearn.svm import LinearSVC
+from sklearn.naive_bayes import MultinomialNB
 from data import adultcsv_loader, compascsv_loader, ccdefaultcsv_loader
 from common import *
 from quapy.method.aggregative import CC, PCC, ACC, PACC, EMQ, HDy
@@ -41,7 +42,8 @@ fname = 'LR'
 # --------------------------------------------
 def classifiers():
     hyperparams = {'C': np.logspace(-3,3,7), 'class_weight': ['balanced', None]}
-    yield 'LR', LogisticRegression(), hyperparams
+    yield 'NB', MultinomialNB(), {}
+    # yield 'LR', LogisticRegression(), hyperparams
     # yield 'SVM', LinearSVC(), hyperparams
 
 

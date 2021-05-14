@@ -42,9 +42,9 @@ fname = 'LR'
 # --------------------------------------------
 def classifiers():
     hyperparams = {'C': np.logspace(-3,3,7), 'class_weight': ['balanced', None]}
-    yield 'NB', MultinomialNB(), {}
+    # yield 'NB', MultinomialNB(), {}
     # yield 'LR', LogisticRegression(), hyperparams
-    # yield 'SVM', LinearSVC(), hyperparams
+    yield 'SVM', LinearSVC(), hyperparams
 
 
 # Define the quantifiers we would like to test

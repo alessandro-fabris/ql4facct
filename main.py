@@ -8,12 +8,17 @@ from sklearn.svm import LinearSVC
 from sklearn.naive_bayes import MultinomialNB
 from data import adultcsv_loader, compascsv_loader, ccdefaultcsv_loader
 from common import *
+from method import DummyIGE, NaturalSamplingAdjustment, ArtificialSamplingAdjustment
 from quapy.method.aggregative import CC, PCC, ACC, PACC, EMQ, HDy
 from common import Protocols
 from tabular import generate_tables
 from plot import generate_plots
 
-
+# uncomment datasets
+# datasplit_repetitions = 5
+# uncomment protocols run
+# uncomment protocols plot-table
+# classifiers = LR
 
 # Define all hyper-parameters here
 # --------------------------------------------
@@ -21,7 +26,7 @@ from plot import generate_plots
 qp.environ['SAMPLE_SIZE'] = 100
 
 model_selection = False
-datasplit_repetitions = 5
+datasplit_repetitions = 1
 options = {
     'nprevs': 11,
     'nreps': 10,
@@ -43,31 +48,39 @@ fname = 'LR'
 def classifiers():
     hyperparams = {'C': np.logspace(-3,3,7), 'class_weight': ['balanced', None]}
     # yield 'NB', MultinomialNB(), {}
-    # yield 'LR', LogisticRegression(), hyperparams
-    yield 'SVM', LinearSVC(), hyperparams
+    yield 'LR', LogisticRegression(), hyperparams
+    # yield 'SVM', LinearSVC(), hyperparams
 
 
 # Define the quantifiers we would like to test
 # --------------------------------------------
 def quantifiers():
     yield 'CC', CC
-    yield 'PCC', PCC
-    yield 'ACC', ACC
+    #yield 'PCC', PCC
+    #yield 'ACC', ACC
     yield 'PACC', PACC
     yield 'EMQ', EMQ
-    yield 'HDy', HDy
+    #yield 'HDy', HDy
+
+
+# Define the independence-gap Estimators we would like to test
+# --------------------------------------------
+def estimators():
+    yield 'Dummy', DummyIGE()
+    yield 'NSA', NaturalSamplingAdjustment(PACC(LogisticRegression()))
+    yield 'ASA', ArtificialSamplingAdjustment(PACC(LogisticRegression()))
 
 
 # Define the quantifiers we would like to test
 # --------------------------------------------
 def datasets():
     yield 'adult', "datasets/adult.csv", adultcsv_loader, "gender"
-    yield 'compas', "datasets/compas-scores-two-years.csv", compascsv_loader, "race"
-    yield 'cc_default', "datasets/default of credit card clients.csv", ccdefaultcsv_loader, "SEX"
+    #yield 'compas', "datasets/compas-scores-two-years.csv", compascsv_loader, "race"
+    #yield 'cc_default', "datasets/default of credit card clients.csv", ccdefaultcsv_loader, "SEX"
 
 
 # instantiate all quantifiers x classifiers (wrapped also within model selection if requested)
-def iter_quantifiers(model_selection=True):
+def iter_methods(model_selection=True):
     for (c_name, c, hyper), (q_name, q) in itertools.product(classifiers(), quantifiers()):
         name = f'{q_name}({c_name})'
         q = q(c)
@@ -83,7 +96,8 @@ def iter_quantifiers(model_selection=True):
                 verbose=False  # show information as the process goes on
             )
         yield name, q
-
+    for (e_name, e) in estimators():
+        yield e_name, e
 
 
 def run_name():
@@ -110,7 +124,7 @@ for dataset_name, data_path, loader, protected in datasets():
 
     results = []
     for run, (D1, D2, D3, AD1) in enumerate(gen_split_data(X, y, A, repetitions=datasplit_repetitions)):
-        pbar = tqdm(itertools.product(iter_quantifiers(model_selection), Protocols))
+        pbar = tqdm(itertools.product(iter_methods(model_selection), Protocols))
         for (Q_name, Q), protocol in pbar:
             pbar.set_description(f'{dataset_name} - {protocol}: {Q_name}')
 

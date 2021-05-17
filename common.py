@@ -2,12 +2,18 @@ import itertools
 import pandas as pd
 import quapy as qp
 import numpy as np
+
+from method import IndependenceGapEstimator
 from quapy.data import LabelledCollection
 from sklearn.base import BaseEstimator
 from copy import deepcopy
 from tqdm import tqdm
 from enum import Enum
 from quapy.method.base import BaseQuantifier
+
+
+def independence_gap(s0_A1, s1_A1):
+    return s0_A1 - s1_A1
 
 
 class Protocols(Enum):
@@ -42,13 +48,29 @@ class Result:
         d = self.data
         return independence_gap(d['trueD3s0A1'], d['trueD3s1A1'])
 
-    def independence_signed_error(self):
+    def estim_independence_gap(self):
         d = self.data
-        return estim_signed_error(d['trueD3s0A1'], d['trueD3s1A1'], d['estimD3s0A1'], d['estimD3s1A1'])
+        if 'direct' in d and not d['direct'].isnull().values.any():
+            return d['direct']
+            #print('DIRECT IS PRESENT', d['Q_name'].unique())
+        else:
+            #print('--------', d['Q_name'].unique())
+            return independence_gap(d['estimD3s0A1'], d['estimD3s1A1'])
+
+    def independence_signed_error(self):
+        true_inds = self.independence_gap()
+        estim_inds = self.estim_independence_gap()
+        errors = estim_inds - true_inds
+        return errors
+        #return estim_signed_error(d['trueD3s0A1'], d['trueD3s1A1'], d['estimD3s0A1'], d['estimD3s1A1'])
 
     def independence_abs_error(self):
-        d = self.data
-        return independence_abs_error(d['trueD3s0A1'], d['trueD3s1A1'], d['estimD3s0A1'], d['estimD3s1A1'])
+        """
+        Computes the error (absolute value of the gaps) between the estimated independence and the true independence.
+        Errors are always non-zero.
+        """
+        return np.abs(self.independence_signed_error())
+        #return independence_abs_error(d['trueD3s0A1'], d['trueD3s1A1'], d['estimD3s0A1'], d['estimD3s1A1'])
 
     def D3s0_abs_error(self):
         d = self.data
@@ -59,8 +81,14 @@ class Result:
         return qp.error.ae(d['trueD3s1A1'].values.reshape(-1,1), d['estimD3s1A1'].values.reshape(-1,1))
 
     def independence_sqr_error(self):
-        d = self.data
-        return independence_sqr_error(d['trueD3s0A1'], d['trueD3s1A1'], d['estimD3s0A1'], d['estimD3s1A1'])
+        #d = self.data
+        #return independence_sqr_error(d['trueD3s0A1'], d['trueD3s1A1'], d['estimD3s0A1'], d['estimD3s1A1'])
+
+        """
+        Computes the error (absolute value of the gaps) between the estimated independence and the true independence.
+        Errors are always non-zero.
+        """
+        return self.independence_signed_error() ** 2
 
     def set(self, colname, value):
         self.data[colname]=value
@@ -148,13 +176,16 @@ def at_least_nneg(data:LabelledCollection, nneg:int):
     return len(data.labels) - data.labels.sum() >= nneg
 
 
-def eval_prevalence_variations_D1(D1, D2, D3, AD1, classifier, quantifier, sample_size=500, nprevs=101, nreps=2):
-    D1indexesAeqY = LabelledCollection(instances=np.arange(len(D1)), labels=D1.labels==AD1)
+def eval_prevalence_variations_D1(D1, D2, D3, AD1, classifier, model, sample_size=500, nprevs=101, nreps=2):
+    if isinstance(model, BaseQuantifier):
+        func = eval_prevalence_variations_D1_quant
+    elif isinstance(model, IndependenceGapEstimator):
+        func = eval_prevalence_variations_D1_estim
+    return func(D1, D2, D3, AD1, classifier, model, sample_size, nprevs, nreps)
 
-    true_M0_A1, true_M1_A1 = [], []
-    estim_M0_A1, estim_M1_A1 = [], []
-    p_Aeqy = []
 
+def __var_D1_generator(D1, D2, D3, AD1, classifier, sample_size, nprevs, nreps):
+    D1indexesAeqY = LabelledCollection(instances=np.arange(len(D1)), labels=D1.labels == AD1)
     steps = qp.functional.num_prevalence_combinations(nprevs, n_classes=2, n_repeats=nreps)
     for idcs in tqdm(D1indexesAeqY.artificial_sampling_index_generator(sample_size, nprevs, nreps), total=steps):
         sample_D1 = D1.sampling_from_index(idcs)
@@ -170,26 +201,45 @@ def eval_prevalence_variations_D1(D1, D2, D3, AD1, classifier, quantifier, sampl
         if not at_least_nneg(D2_y1, nneg=5): continue
         if not at_least_nneg(D2_y0, nneg=5): continue
 
+        prevAeqY = D1indexesAeqY.labels[idcs].mean()
+
+        yield D2_y0, D2_y1, D3_y0, D3_y1, prevAeqY
+
+
+def eval_prevalence_variations_D1_quant(D1, D2, D3, AD1, classifier, quantifier, sample_size=500, nprevs=101, nreps=2):
+    true_M0_A1, true_M1_A1, estim_M0_A1, estim_M1_A1, p_Aeqy = [], [], [], [], []
+
+    for D2_y0, D2_y1, D3_y0, D3_y1, prevAeqY in __var_D1_generator(D1, D2, D3, AD1, classifier, sample_size, nprevs, nreps):
         M1 = deepcopy(quantifier).fit(D2_y1)
         M0 = deepcopy(quantifier).fit(D2_y0)
-
         estim_M1_A1.append(M1.quantify(D3_y1.instances)[1])
         estim_M0_A1.append(M0.quantify(D3_y0.instances)[1])
-
         true_M1_A1.append(D3_y1.prevalence()[1])
         true_M0_A1.append(D3_y0.prevalence()[1])
-
-        prevAeqY = D1indexesAeqY.labels[idcs].mean()
         p_Aeqy.append(prevAeqY)
 
     return Result.with_columns(Protocols.VAR_D1_PREV, true_M0_A1, true_M1_A1, estim_M0_A1, estim_M1_A1, p_Aeqy=p_Aeqy)
 
 
-def eval_prevalence_variations_D1_flip(D1, D2, D3, AD1, classifier, quantifier, sample_size=500, nprevs=101, nreps=2):
-    true_M0_A1, true_M1_A1 = [], []
-    estim_M0_A1, estim_M1_A1 = [], []
-    p_Aeqy = []
+def eval_prevalence_variations_D1_estim(D1, D2, D3, AD1, classifier, estimator:IndependenceGapEstimator, sample_size=500, nprevs=101, nreps=2):
+    true_M0_A1, true_M1_A1, estim_M0_A1, estim_M1_A1, p_Aeqy = [], [], [], [], []
+    direct_estimation = []
 
+    for D2_y0, D2_y1, D3_y0, D3_y1, prevAeqY in __var_D1_generator(D1, D2, D3, AD1, classifier, sample_size, nprevs, nreps):
+        estimator.fit(D2_y0, D2_y1)
+        ig_hat = estimator.predict(D3_y0.instances, D3_y1.instances)
+        direct_estimation.append(ig_hat)
+        estim_M1_A1.append(0)
+        estim_M0_A1.append(0)
+        true_M1_A1.append(D3_y1.prevalence()[1])
+        true_M0_A1.append(D3_y0.prevalence()[1])
+        p_Aeqy.append(prevAeqY)
+
+    return Result.with_columns(Protocols.VAR_D1_PREV, true_M0_A1, true_M1_A1, estim_M0_A1, estim_M1_A1,
+                               p_Aeqy=p_Aeqy, direct=direct_estimation)
+
+
+def __var_D1_flip_generator(D1, D2, D3, AD1, classifier, sample_size, nprevs, nreps):
     prevs = np.linspace(0., 1., nprevs, endpoint=True)
 
     def flip_labels(Y, A, p_Aeqy):
@@ -246,22 +296,60 @@ def eval_prevalence_variations_D1_flip(D1, D2, D3, AD1, classifier, quantifier, 
             if not at_least_nneg(D2_y1, nneg=5): continue
             if not at_least_nneg(D2_y0, nneg=5): continue
 
-            M1 = deepcopy(quantifier).fit(D2_y1)
-            M0 = deepcopy(quantifier).fit(D2_y0)
+            yield D2_y0, D2_y1, D3_y0, D3_y1, prev
 
-            estim_M1_A1.append(M1.quantify(D3_y1.instances)[1])
-            estim_M0_A1.append(M0.quantify(D3_y0.instances)[1])
 
-            true_M1_A1.append(D3_y1.prevalence()[1])
-            true_M0_A1.append(D3_y0.prevalence()[1])
+def eval_prevalence_variations_D1_flip(D1, D2, D3, AD1, classifier, model, sample_size=500, nprevs=101, nreps=2):
+    if isinstance(model, BaseQuantifier):
+        func = eval_prevalence_variations_D1_flip_quant
+    elif isinstance(model, IndependenceGapEstimator):
+        func = eval_prevalence_variations_D1_flip_estim
+    return func(D1, D2, D3, AD1, classifier, model, sample_size, nprevs, nreps)
 
-            p_Aeqy.append(prev)
+
+def eval_prevalence_variations_D1_flip_quant(D1, D2, D3, AD1, classifier, quantifier, sample_size=500, nprevs=101, nreps=2):
+    true_M0_A1, true_M1_A1, estim_M0_A1, estim_M1_A1, p_Aeqy = [], [], [], [], []
+
+    for D2_y0, D2_y1, D3_y0, D3_y1, prev in __var_D1_flip_generator(D1, D2, D3, AD1, classifier, sample_size, nprevs, nreps):
+        M1 = deepcopy(quantifier).fit(D2_y1)
+        M0 = deepcopy(quantifier).fit(D2_y0)
+        estim_M1_A1.append(M1.quantify(D3_y1.instances)[1])
+        estim_M0_A1.append(M0.quantify(D3_y0.instances)[1])
+        true_M1_A1.append(D3_y1.prevalence()[1])
+        true_M0_A1.append(D3_y0.prevalence()[1])
+        p_Aeqy.append(prev)
 
     return Result.with_columns(Protocols.VAR_D1_PREVFLIP, true_M0_A1, true_M1_A1, estim_M0_A1, estim_M1_A1,
                                p_Aeqy=p_Aeqy)
 
 
-def eval_size_variations_D2(D1, D2, D3, classifier, quantifier, nreps=10, sample_sizes=None):
+def eval_prevalence_variations_D1_flip_estim(D1, D2, D3, AD1, classifier, estimator, sample_size=500, nprevs=101, nreps=2):
+    true_M0_A1, true_M1_A1, estim_M0_A1, estim_M1_A1, p_Aeqy = [], [], [], [], []
+    direct_estimation = []
+
+    for D2_y0, D2_y1, D3_y0, D3_y1, prev in __var_D1_flip_generator(D1, D2, D3, AD1, classifier, sample_size, nprevs, nreps):
+        estimator.fit(D2_y0, D2_y1)
+        ig_hat = estimator.predict(D3_y0.instances, D3_y1.instances)
+        direct_estimation.append(ig_hat)
+        estim_M1_A1.append(0)
+        estim_M0_A1.append(0)
+        true_M1_A1.append(D3_y1.prevalence()[1])
+        true_M0_A1.append(D3_y0.prevalence()[1])
+        p_Aeqy.append(prev)
+
+    return Result.with_columns(Protocols.VAR_D1_PREVFLIP, true_M0_A1, true_M1_A1, estim_M0_A1, estim_M1_A1,
+                               p_Aeqy=p_Aeqy, direct=direct_estimation)
+
+
+def eval_size_variations_D2(D1, D2, D3, classifier, model, nreps=10, sample_sizes=None):
+    if isinstance(model, BaseQuantifier):
+        func = eval_size_variations_D2_quant
+    elif isinstance(model, IndependenceGapEstimator):
+        func = eval_size_variations_D2_estim
+    return func(D1, D2, D3, classifier, model, nreps, sample_sizes)
+
+
+def eval_size_variations_D2_quant(D1, D2, D3, classifier, quantifier, nreps=10, sample_sizes=None):
     if sample_sizes is None:
         min_size = 1000
         sample_sizes = [int(round(val)) for val in np.geomspace(min_size, len(D2.labels), num=5)]
@@ -281,8 +369,6 @@ def eval_size_variations_D2(D1, D2, D3, classifier, quantifier, nreps=10, sample
             sample_D2_y_hat = D2_y_hat[sample_idcs]
             sample_D2_y0 = sample_D2.sampling_from_index(sample_D2_y_hat == 0)
             sample_D2_y1 = sample_D2.sampling_from_index(sample_D2_y_hat == 1)
-            # sample_D2_y0 = LabelledCollection(sample_D2.instances[sample_D2_y_hat == 0], sample_D2.labels[sample_D2_y_hat == 0], n_classes=sample_D2.n_classes)
-            # sample_D2_y1 = LabelledCollection(sample_D2.instances[sample_D2_y_hat == 1], sample_D2.labels[sample_D2_y_hat == 1], n_classes=sample_D2.n_classes)
             M0.fit(sample_D2_y0)
             estim_M0_A1.append(M0.quantify(D3_y0.instances)[1])
             M1.fit(sample_D2_y1)
@@ -303,7 +389,55 @@ def eval_size_variations_D2(D1, D2, D3, classifier, quantifier, nreps=10, sample
                                size_D2=size_D2)
 
 
-def eval_prevalence_variations_D2(D1, D2, D3, classifier, quantifier, sample_size=1000, nprevs=101, nreps=2):
+def eval_size_variations_D2_estim(D1, D2, D3, classifier, estimator, nreps=10, sample_sizes=None):
+    if sample_sizes is None:
+        min_size = 1000
+        sample_sizes = [int(round(val)) for val in np.geomspace(min_size, len(D2.labels), num=5)]
+
+    f = classifier.fit(*D1.Xy)
+    D2_y_hat = classifier.predict(D2.instances)
+    D3_y1, D3_y0 = classify(f, D3)
+
+    def vary_and_test(estimator, D2, D2_y_hat, D3_y0, D3_y1, sample_sizes, nreps):
+        estim_M0_A1, estim_M1_A1  = [], []
+        size_D2 = []
+        direct_estimation = []
+        for sample_D2, sample_idcs in tqdm(natural_sampling_generator_varsize(D2, sample_sizes, nreps),
+                                           desc='training estimators at size variations in D2'):
+            assert sample_D2.prevalence().prod() != 0
+            sample_D2_y_hat = D2_y_hat[sample_idcs]
+            sample_D2_y0 = sample_D2.sampling_from_index(sample_D2_y_hat == 0)
+            sample_D2_y1 = sample_D2.sampling_from_index(sample_D2_y_hat == 1)
+            estimator.fit(sample_D2_y0, sample_D2_y1)
+            ig_hat = estimator.predict(D3_y0.instances, D3_y1.instances)
+            direct_estimation.append(ig_hat)
+            estim_M1_A1.append(0)
+            estim_M0_A1.append(0)
+            size_D2.append(len(sample_D2))
+
+        estim_M0_A1 = np.asarray(estim_M0_A1)
+        estim_M1_A1 = np.asarray(estim_M1_A1)
+        true_M0_A1 = np.asarray([D3_y0.prevalence()[1]] * len(estim_M0_A1))
+        true_M1_A1 = np.asarray([D3_y1.prevalence()[1]] * len(estim_M1_A1))
+
+        return true_M0_A1, estim_M0_A1, true_M1_A1, estim_M1_A1, size_D2, direct_estimation
+
+    true_D3_s0_A1, estim_D3_s0_A1, true_D3_s1_A1, estim_D3_s1_A1, size_D2, direct_estimation = \
+        vary_and_test(estimator, D2, D2_y_hat, D3_y0, D3_y1, sample_sizes, nreps)
+
+    return Result.with_columns(Protocols.VAR_D2_SIZE, true_D3_s0_A1, true_D3_s1_A1, estim_D3_s0_A1, estim_D3_s1_A1,
+                               size_D2=size_D2, direct=direct_estimation)
+
+
+def eval_prevalence_variations_D2(D1, D2, D3, classifier, model, sample_size=1000, nprevs=101, nreps=2):
+    if isinstance(model, BaseQuantifier):
+        func = eval_prevalence_variations_D2_quant
+    elif isinstance(model, IndependenceGapEstimator):
+        func = eval_prevalence_variations_D2_estim
+    return func(D1, D2, D3, classifier, model, sample_size, nprevs, nreps)
+
+
+def eval_prevalence_variations_D2_quant(D1, D2, D3, classifier, quantifier, sample_size=1000, nprevs=101, nreps=2):
     f = classifier.fit(*D1.Xy)
 
     D2_y1, D2_y0 = classify(f, D2)
@@ -358,8 +492,73 @@ def eval_prevalence_variations_D2(D1, D2, D3, classifier, quantifier, sample_siz
                                D3_s1_prev=D3_y1.prevalence()[1]
                                )
 
+def eval_prevalence_variations_D2_estim(D1, D2, D3, classifier, estimator, sample_size=1000, nprevs=101, nreps=2):
+    f = classifier.fit(*D1.Xy)
 
-def eval_prevalence_variations_D3(D1, D2, D3, classifier, quantifier, sample_size=500, nprevs=101, nreps=2):
+    D2_y1, D2_y0 = classify(f, D2)
+    D3_y1, D3_y0 = classify(f, D3)
+
+    def vary_and_test(estimator:IndependenceGapEstimator,
+                      D2var: LabelledCollection, D2fix: LabelledCollection,
+                      D3var: LabelledCollection, D3fix: LabelledCollection,
+                      order_s0_s1=True):
+
+        # artificial samplings in D2var
+        trueD2sampVar, trueD2sampFix = [], []
+        direct_estimation = []
+        for D2sampleVar in D2var.artificial_sampling_generator(sample_size=sample_size, n_prevalences=nprevs, repeats=nreps):
+            D2sampleFix = D2fix.uniform_sampling(sample_size)
+            if D2sampleVar.prevalence().prod() == 0: continue
+            if order_s0_s1:
+                estimator.fit(D2sampleVar, D2sampleFix)
+                estim = estimator.predict(D3var.instances, D3fix.instances)
+            else:
+                estimator.fit(D2sampleFix, D2sampleVar)
+                estim = estimator.predict(D3fix.instances, D3var.instances)
+            direct_estimation.append(estim)
+            trueD2sampVar.append(D2sampleVar.prevalence()[1])
+            trueD2sampFix.append(D2sampleFix.prevalence()[1])
+        n_results = len(trueD2sampVar)
+        trueD2sampVar = np.asarray(trueD2sampVar)
+        trueD2sampFix = np.asarray(trueD2sampFix)
+        trueD3var = np.asarray([D3var.prevalence()[1]] * n_results)
+        trueD3fix = np.asarray([D3fix.prevalence()[1]] * n_results)
+
+        return trueD3var, trueD3fix, trueD2sampVar, trueD2sampFix, direct_estimation
+
+    true_D3s0var, true_D3s1fix, true_D2s0var, true_D2s1fix, direct_estimation1 = \
+        vary_and_test(estimator, D2_y0, D2_y1, D3_y0, D3_y1, order_s0_s1=True)
+    true_D3s1var, true_D3s0fix, true_D2s1var, true_D2s0fix, direct_estimation2 = \
+        vary_and_test(estimator, D2_y1, D2_y0, D3_y1, D3_y0, order_s0_s1=False)
+
+    # stack the blocks
+    true_D3_s0_A1   = np.concatenate([true_D3s0var, true_D3s0fix])
+    true_D3_s1_A1   = np.concatenate([true_D3s1fix, true_D3s1var])
+    estim_D3_s0_A1  = 0
+    estim_D3_s1_A1  = 0
+    true_D2_s0_A1   = np.concatenate([true_D2s0var, true_D2s0fix])
+    true_D2_s1_A1   = np.concatenate([true_D2s1fix, true_D2s1var])
+    direct_estimation = np.asarray(direct_estimation1 + direct_estimation2)
+
+    return Result.with_columns(Protocols.VAR_D2_PREV, true_D3_s0_A1, true_D3_s1_A1, estim_D3_s0_A1, estim_D3_s1_A1,
+                               var_s=np.asarray([0] * len(true_D3s0var) + [1] * len(true_D3s1var)),
+                               D2_s0_prev=true_D2_s0_A1,
+                               D2_s1_prev=true_D2_s1_A1,
+                               D3_s0_prev=D3_y0.prevalence()[1],
+                               D3_s1_prev=D3_y1.prevalence()[1],
+                               direct=direct_estimation
+                               )
+
+
+def eval_prevalence_variations_D3(D1, D2, D3, classifier, model, sample_size=500, nprevs=101, nreps=2):
+    if isinstance(model, BaseQuantifier):
+        func = eval_prevalence_variations_D3_quant
+    elif isinstance(model, IndependenceGapEstimator):
+        func = eval_prevalence_variations_D3_estim
+    return func(D1, D2, D3, classifier, model, sample_size, nprevs, nreps)
+
+
+def eval_prevalence_variations_D3_quant(D1, D2, D3, classifier, quantifier, sample_size=500, nprevs=101, nreps=2):
     f = classifier.fit(*D1.Xy)
 
     D2_y1, D2_y0 = classify(f, D2)
@@ -403,34 +602,72 @@ def eval_prevalence_variations_D3(D1, D2, D3, classifier, quantifier, sample_siz
                                D2_s1_prev=D2_y1.prevalence()[1])
 
 
-def independence_gap(s0_A1, s1_A1):
-    return s0_A1 - s1_A1
+def eval_prevalence_variations_D3_estim(D1, D2, D3, classifier, estimator, sample_size=500, nprevs=101, nreps=2):
+    f = classifier.fit(*D1.Xy)
 
+    D2_y1, D2_y0 = classify(f, D2)
+    D3_y1, D3_y0 = classify(f, D3)
 
-def estim_signed_error(true_s0_A1, true_s1_A1, estim_s0_A1, estim_s1_A1):
+    estimator.fit(D2_y0, D2_y1)
+
+    def vary_and_test(estimator: IndependenceGapEstimator,
+                      varySplit: LabelledCollection,
+                      fixSplit: LabelledCollection,
+                      order_s0_s1=True):
+
+        trueVar, trueFix, direct_estimations = [],[],[]
+        for varSample in varySplit.artificial_sampling_generator(sample_size, nprevs, nreps):
+            fixSample = fixSplit.uniform_sampling(sample_size)
+            if order_s0_s1:
+                estim = estimator.predict(varSample.instances, fixSample.instances)
+            else:
+                estim = estimator.predict(fixSample.instances, varSample.instances)
+            trueVar.append(varSample.prevalence()[1])
+            trueFix.append(fixSample.prevalence()[1])
+            direct_estimations.append(estim)
+
+        return trueVar, trueFix, direct_estimations
+
+    true_s0var, true_s1fix, direct1 = vary_and_test(estimator, D3_y0, D3_y1, order_s0_s1=True)
+    true_s1var, true_s0fix, direct2 = vary_and_test(estimator, D3_y1, D3_y0, order_s0_s1=False)
+
+    # stack the blocks
+    true_D3_s0_A1 = np.concatenate([true_s0var, true_s0fix])
+    true_D3_s1_A1 = np.concatenate([true_s1fix, true_s1var])
+    estim_D3_s0_A1 = 0
+    estim_D3_s1_A1 = 0
+    direct = np.asarray(direct1+direct2)
+
+    return Result.with_columns(Protocols.VAR_D3_PREV, true_D3_s0_A1, true_D3_s1_A1, estim_D3_s0_A1, estim_D3_s1_A1,
+                               var_s=np.asarray([0] * len(true_s0var) + [1] * len(true_s1var)),
+                               D2_s0_prev=D2_y0.prevalence()[1],
+                               D2_s1_prev=D2_y1.prevalence()[1],
+                               direct=direct)
+
+    #def estim_signed_error(true_s0_A1, true_s1_A1, estim_s0_A1, estim_s1_A1):
     """
     Computes the gap between the estimated independence and the true independence.
     Positive (negative) values thus represent a tendency to overestimate (underestimate) the true value.
     """
-    true_inds = independence_gap(true_s0_A1, true_s1_A1)
-    estim_inds = independence_gap(estim_s0_A1, estim_s1_A1)
-    errors = estim_inds - true_inds
-    return errors
+#    true_inds = independence_gap(true_s0_A1, true_s1_A1)
+#    estim_inds = independence_gap(estim_s0_A1, estim_s1_A1)
+#    errors = estim_inds - true_inds
+#    return errors
 
 
-def independence_abs_error(true_s0_A1, true_s1_A1, estim_s0_A1, estim_s1_A1):
-    """
-    Computes the error (absolute value of the gaps) between the estimated independence and the true independence.
-    Errors are always non-zero.
-    """
-    errors = np.abs(estim_signed_error(true_s0_A1, true_s1_A1, estim_s0_A1, estim_s1_A1))
-    return errors
+# def independence_abs_error(true_s0_A1, true_s1_A1, estim_s0_A1, estim_s1_A1):
+#     """
+#     Computes the error (absolute value of the gaps) between the estimated independence and the true independence.
+#     Errors are always non-zero.
+#     """
+#     errors = np.abs(estim_signed_error(true_s0_A1, true_s1_A1, estim_s0_A1, estim_s1_A1))
+#     return errors
 
 
-def independence_sqr_error(true_s0_A1, true_s1_A1, estim_s0_A1, estim_s1_A1):
-    """
-    Computes the error (absolute value of the gaps) between the estimated independence and the true independence.
-    Errors are always non-zero.
-    """
-    errors = estim_signed_error(true_s0_A1, true_s1_A1, estim_s0_A1, estim_s1_A1) ** 2
-    return errors
+# def independence_sqr_error(true_s0_A1, true_s1_A1, estim_s0_A1, estim_s1_A1):
+#     """
+#     Computes the error (absolute value of the gaps) between the estimated independence and the true independence.
+#     Errors are always non-zero.
+#     """
+#     errors = estim_signed_error(true_s0_A1, true_s1_A1, estim_s0_A1, estim_s1_A1) ** 2
+#     return errors

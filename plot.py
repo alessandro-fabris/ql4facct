@@ -16,6 +16,7 @@ def _boxplot_from_dict(d, filename, xlab='x_axis', tit=''):
     sns.boxplot(x="x_axis", y="y_axis", hue="quant", data=df).set(xlabel=xlab, ylabel='Estimation error')
     sns.despine(offset=10, trim=True)
     plt.title(tit)
+    print(f'saving figure in {filename}')
     plt.savefig(filename)
 
 

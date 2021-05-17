@@ -43,6 +43,7 @@ def generate_tables(protocol: Protocols, outs: List[Result], table_path):
         table.add(Pr02, Q_name, values=p02)
 
     with open(table_path, 'wt') as foo:
+        print(f'saving table in {table_path}')
         foo.write(table.latexTabularMxB(average=False))
 
 

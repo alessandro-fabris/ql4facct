@@ -25,7 +25,7 @@ from plot import generate_plots
 
 qp.environ['SAMPLE_SIZE'] = 100
 
-model_selection = False
+# model_selection = False
 datasplit_repetitions = 1
 options = {
     'nprevs': 11,
@@ -46,9 +46,9 @@ fname = 'LR'
 # Define the classifiers we would like to test
 # --------------------------------------------
 def classifiers():
-    hyperparams = {'C': np.logspace(-3,3,7), 'class_weight': ['balanced', None]}
+    # hyperparams = {'C': np.logspace(-3,3,7), 'class_weight': ['balanced', None]}
     # yield 'NB', MultinomialNB(), {}
-    yield 'LR', LogisticRegression(), hyperparams
+    yield 'LR', LogisticRegression() #, hyperparams
     # yield 'SVM', LinearSVC(), hyperparams
 
 
@@ -66,8 +66,8 @@ def quantifiers():
 # Define the independence-gap Estimators we would like to test
 # --------------------------------------------
 def estimators():
-    yield 'Dummy', DummyIGE()
-    yield 'NSA', NaturalSamplingAdjustment(PACC(LogisticRegression()))
+    # yield 'Dummy', DummyIGE()
+    # yield 'NSA', NaturalSamplingAdjustment(PACC(LogisticRegression()))
     yield 'ASA', ArtificialSamplingAdjustment(PACC(LogisticRegression()))
 
 
@@ -80,21 +80,10 @@ def datasets():
 
 
 # instantiate all quantifiers x classifiers (wrapped also within model selection if requested)
-def iter_methods(model_selection=True):
-    for (c_name, c, hyper), (q_name, q) in itertools.product(classifiers(), quantifiers()):
+def iter_methods():
+    for (c_name, c), (q_name, q) in itertools.product(classifiers(), quantifiers()):
         name = f'{q_name}({c_name})'
         q = q(c)
-        if model_selection:
-            q = qp.model_selection.GridSearchQ(
-                model=q,
-                param_grid=hyper,
-                sample_size=qp.environ['SAMPLE_SIZE'],
-                eval_budget=500,
-                error='mae',
-                refit=True,  # retrain on the whole labelled set
-                val_split=0.4,
-                verbose=False  # show information as the process goes on
-            )
         yield name, q
     for (e_name, e) in estimators():
         yield e_name, e
@@ -103,7 +92,7 @@ def iter_methods(model_selection=True):
 def run_name():
     options_par = '_'.join(f'{key}{options[key]}' for key in sorted(options.keys()))
     fmode = '' if fclassweight is None else '_fclassweight=balanced'
-    return f'{dataset_name}_{Q_name}_f{fname}_Run{run}_{protocol}_{options_par}_modsel{model_selection}{fmode}.pkl'
+    return f'{dataset_name}_{Q_name}_f{fname}_Run{run}_{protocol}_{options_par}_modsel{False}{fmode}.pkl'
 
 
 # --------------------------------------------
@@ -124,7 +113,7 @@ for dataset_name, data_path, loader, protected in datasets():
 
     results = []
     for run, (D1, D2, D3, AD1) in enumerate(gen_split_data(X, y, A, repetitions=datasplit_repetitions)):
-        pbar = tqdm(itertools.product(iter_methods(model_selection), Protocols))
+        pbar = tqdm(itertools.product(iter_methods(), Protocols))
         for (Q_name, Q), protocol in pbar:
             pbar.set_description(f'{dataset_name} - {protocol}: {Q_name}')
 

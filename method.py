@@ -122,51 +122,6 @@ class ArtificialSamplingAdjustment(IndependenceGapEstimator):
         return self.reg.predict(X)[0]
 
 
-# if __name__ == '__main__':
-#     print('__main__')
-#     X, y, A = adultcsv_loader("datasets/adult.csv", protected_attr="gender")
-#     scaler = sklearn.preprocessing.StandardScaler()
-#     X = scaler.fit_transform(X)
-#     classifier = LogisticRegression(class_weight='balanced')
-#
-#     quantifier = PACC(LogisticRegression())
-#
-#     results_q = []
-#     results_m = []
-#     for run, (D1, D2, D3, AD1) in enumerate(gen_split_data(X, y, A, repetitions=5)):
-#         f = classifier.fit(*D1.Xy)
-#         D2_y1, D2_y0 = classify(f, D2)
-#         D3_y1, D3_y0 = classify(f, D3)
-#
-#         quantifier.fit(D2_y1)
-#         estim_s1A1 = quantifier.quantify(D3_y1.instances)[1]
-#         true_s1A1 = D3_y1.prevalence()[1]
-#
-#         quantifier.fit(D2_y0)
-#         estim_s0A1 = quantifier.quantify(D3_y0.instances)[1]
-#         true_s0A1 = D3_y0.prevalence()[1]
-#
-#         true_gap = independence_gap(true_s0A1, true_s1A1)
-#         estim_gap = independence_gap(estim_s0A1, estim_s1A1)
-#         error = estim_gap - true_gap
-#         results_q.append(error)
-#
-#         ie = IndependenceGapEstimator(quantifier)
-#         ie.fit(D2_y0, D2_y1)
-#         estim_gap2 = ie.predict(D3_y0.instances, D3_y1.instances)
-#         error2 = estim_gap2 - true_gap
-#         results_m.append(error2)
-#
-#         print(f'Q error {error:.4f}')
-#         print(f'Q error2 {error2:.4f}')
-#
-#     results_q = np.asarray(results_q)
-#     results_m = np.asarray(results_m)
-#
-#     print(f'MAE(Q)={np.abs(results_q).mean():.5f}')
-#     print(f'MAE(M)={np.abs(results_m).mean():.5f}')
-
-
 
 
 

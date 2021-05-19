@@ -187,7 +187,7 @@ def _delayed_eval(args):
     return error(prev_true, prev_estim)
 
 
-def _check_num_evals(n_classes, n_prevpoints=None, eval_budget=None, n_repetitions=1, verbose=True):
+def _check_num_evals(n_classes, n_prevpoints=None, eval_budget=None, n_repetitions=1, verbose=False):
     if n_prevpoints is None and eval_budget is None:
         raise ValueError('either n_prevpoints or eval_budget has to be specified')
     elif n_prevpoints is None:

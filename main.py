@@ -16,8 +16,6 @@ from plot import generate_plots
 
 # uncomment datasets
 # datasplit_repetitions = 5
-# uncomment protocols run
-# uncomment protocols plot-table
 # classifiers = LR
 
 # Define all hyper-parameters here
@@ -26,11 +24,12 @@ from plot import generate_plots
 qp.environ['SAMPLE_SIZE'] = 100
 
 # model_selection = False
-datasplit_repetitions = 1
+datasplit_repetitions = 5
 options = {
     'nprevs': 11,
     'nreps': 10,
-    'sample_size': 500
+    'sample_size': 500,
+    'splitD2': True
 }
 result_dir = './results'
 table_dir = './tables'
@@ -41,6 +40,7 @@ skip_already_computed = True  # set to False to force re-generation of experimen
 fclassweight='balanced'
 f = LogisticRegression(class_weight=fclassweight)
 fname = 'LR'
+include_noSplitD2 = True
 
 
 # Define the classifiers we would like to test
@@ -85,13 +85,16 @@ def iter_methods():
         name = f'{q_name}({c_name})'
         q = q(c)
         yield name, q
-    for (e_name, e) in estimators():
-        yield e_name, e
+    # for (e_name, e) in estimators():
+    #     yield e_name, e
 
 
 def run_name():
     options_par = '_'.join(f'{key}{options[key]}' for key in sorted(options.keys()))
+    options_par=options_par.replace('_splitD2True', '')
+    options_par=options_par.replace('_splitD2False', '')
     fmode = '' if fclassweight is None else '_fclassweight=balanced'
+    # splitD2str = '-nosD2' if (not options['splitD2'] and isinstance(Q, BaseQuantifier)) else ''
     return f'{dataset_name}_{Q_name}_f{fname}_Run{run}_{protocol}_{options_par}_modsel{False}{fmode}.pkl'
 
 
@@ -99,10 +102,14 @@ def run_name():
 # Compute the experiments
 # --------------------------------------------
 
-
 os.makedirs(result_dir, exist_ok=True)
 os.makedirs(table_dir, exist_ok=True)
 os.makedirs(plot_dir, exist_ok=True)
+
+if include_noSplitD2:
+    options_splitD2 = [True, False]
+else:
+    options_splitD2 = [True]
 
 
 for dataset_name, data_path, loader, protected in datasets():
@@ -113,9 +120,15 @@ for dataset_name, data_path, loader, protected in datasets():
 
     results = []
     for run, (D1, D2, D3, AD1) in enumerate(gen_split_data(X, y, A, repetitions=datasplit_repetitions)):
-        pbar = tqdm(itertools.product(iter_methods(), Protocols))
-        for (Q_name, Q), protocol in pbar:
+        pbar = tqdm(itertools.product(iter_methods(), Protocols, options_splitD2))
+        for (Q_name, Q), protocol, splitD2 in pbar:
             pbar.set_description(f'{dataset_name} - {protocol}: {Q_name}')
+            options['splitD2'] = splitD2
+            if not options['splitD2']:
+                if isinstance(Q, BaseQuantifier):
+                    Q_name += '-nosD2'
+                else:
+                    continue
 
             result_path = os.path.join(result_dir, run_name())
             if skip_already_computed and os.path.exists(result_path):
@@ -128,7 +141,7 @@ for dataset_name, data_path, loader, protected in datasets():
             elif protocol == Protocols.VAR_D1_PREVFLIP:
                 outs = eval_prevalence_variations_D1_flip(D1, D2, D3, AD1, f, Q, **options)
             elif protocol == Protocols.VAR_D2_SIZE:
-                outs = eval_size_variations_D2(D1, D2, D3, f, Q, sample_sizes=None, nreps=options['nreps'])
+                outs = eval_size_variations_D2(D1, D2, D3, f, Q, sample_sizes=None, nreps=options['nreps'], splitD2=options['splitD2'])
             elif protocol == Protocols.VAR_D2_PREV:
                 outs = eval_prevalence_variations_D2(D1, D2, D3, f, Q, **options)
             elif protocol == Protocols.VAR_D3_PREV:

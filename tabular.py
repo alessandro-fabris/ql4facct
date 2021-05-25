@@ -47,6 +47,64 @@ def generate_tables(protocol: Protocols, outs: List[Result], table_path):
         foo.write(table.latexTabularMxB(average=False))
 
 
+def generate_tables_joindatasets(protocol: Protocols, outs: List[Result], table_path, incl_interm=False):
+
+    allresults = Result.concat(outs).select_protocol(protocol)
+    method_names = allresults.data['Q_name'].unique()
+    datasets = allresults.data['dataset'].unique()
+    dataset2name = {'cc_default_SEX': 'cc-default',
+                    'compas_race': 'compas',
+                    'adult_gender': 'adult'}
+
+    QerrMAED3s0 = 'MAE$_{D_3^0}$'
+    QerrMAED3s1 = 'MAE$_{D_3^1}$'
+    Pr01 = '$P(\mathrm{MAE}<0.1)$'
+    Pr02 = '$P(\mathrm{MAE}<0.2)$'
+    tables = []
+    if incl_interm:
+        columns = ['MAE', 'MSE', QerrMAED3s0, QerrMAED3s1, Pr01, Pr02]
+        lower_better_cols = ['MAE', 'MSE', QerrMAED3s0, QerrMAED3s1]
+    else:
+        columns = ['MAE', 'MSE', Pr01, Pr02]
+        lower_better_cols = ['MAE', 'MSE']
+    for ds in datasets:
+        row_names = method_names
+        table = Table(columns, row_names,
+                      lower_is_better=lower_better_cols,
+                      greater_is_better=[Pr01, Pr02],
+                      ttest='ttest', prec_mean=3,
+                      show_std=lower_better_cols,
+                      prec_std=3, average=False, color=False)
+        for Q_name in method_names:
+            results = allresults.filter('Q_name', Q_name)
+            results = results.filter('dataset', ds)
+            # print(f'{Q_name} has {len(results)} outs')
+            s_error = results.independence_signed_error()
+            abs_error = results.independence_abs_error()
+            sqr_error = results.independence_sqr_error()
+            qs0 = results.D3s0_abs_error()
+            qs1 = results.D3s1_abs_error()
+            p01 = (abs_error<0.1)*1
+            p02 = (abs_error<0.2)*1
+
+            row_name = Q_name
+            table.add('MAE', row_name, values=abs_error)
+            table.add('MSE', row_name, values=sqr_error)
+            if incl_interm:
+                table.add(QerrMAED3s0, row_name, values=qs0)
+                table.add(QerrMAED3s1, row_name, values=qs1)
+            table.add(Pr01, row_name, values=p01)
+            table.add(Pr02, row_name, values=p02)
+        tables.append(table)
+
+    with open(table_path, 'wt') as foo:
+        print(f'saving table in {table_path}')
+        tab = ''
+        for idx_ds, ds in enumerate(datasets):
+            tab += tables[idx_ds].latexTabularMxB(average=False, open_table=(idx_ds==0), close_table=(idx_ds==len(datasets)-1), multirow_head=dataset2name[ds])
+        foo.write(tab)
+
+
 # this is copypasted from another project...
 
 class Table:
@@ -308,14 +366,13 @@ class Table:
                 std = f" {std:.{self.prec_std}f}"
                 if self.clean_zero:
                     std = std.replace(' 0.', '.')
-                std = f" \pm {std:{self.prec_std}}"
+                std = f"\pm{std:{self.prec_std}}"
 
         if stat!='' or std!='':
             l = f'{l}${stat}{std}$'
-
+        l = l.replace(' ', '')
         if self.color:
             l += ' ' + self.map['color'][i,j]
-
         return l
 
     def latexTabularBxM(self, benchmark_replace={}, method_replace={}, average=True):
@@ -336,21 +393,39 @@ class Table:
         tab += "\end{tabular}%\n"
         return tab
 
-    def latexTabularMxB(self, benchmark_replace={}, method_replace={}, average=True):
-        tab = "\center\n"
-        tab += "\\begin{tabular}{|c||" + ('c|' * self.nbenchmarks) + "} \hline\n"
-        tab += ' & '
-        tab += ' & '.join([benchmark_replace.get(col, col) for col in self.benchmarks])
-        tab += ' \\\\\hline\n'
-        for row in self.methods:
+    def latexTabularMxB(self, benchmark_replace={}, method_replace={}, average=True, open_table=True, close_table=True, tab='', multirow_head=None):
+        if open_table:
+            tab += "\center\n"
+            if multirow_head is None:
+                tab += "\\begin{tabular}{c" + ('c' * self.nbenchmarks) + "} \\toprule\n"
+                tab += ' & '
+            else:
+                tab += "\\begin{tabular}{cc" + ('c' * self.nbenchmarks) + "} \\toprule\n"
+                tab += ' & & '
+            tab += ' & '.join([benchmark_replace.get(col, col) for col in self.benchmarks])
+            tab += ' \\\\ \\midrule\n'
+
+        def first_token_in_row(idx_row, multirow_head, num_rows):
+            if multirow_head is None:
+                return ''
+            elif idx_row == 0:
+                return '\multirow{'+ str(num_rows) + '}{*}{' + multirow_head + '} &'
+            else:
+                return ' &'
+
+        for idx_row, row in enumerate(self.methods):
+            tab += first_token_in_row(idx_row, multirow_head, len(self.methods))
             rowname = method_replace.get(row, row)
             tab += rowname + ' & '
-            tab += self.latexRowBenchmark(row)
+            tab += self.latexRowBenchmark(row, endl='\\\\\n')
 
         if average:
             raise NotImplementedError()
-
-        tab += "\end{tabular}%\n"
+        if close_table:
+            tab += '\\bottomrule\n'
+            tab += "\end{tabular}%\n"
+        else:
+            tab += '\n \\vspace{0.01cm} \\\\ \n'
         return tab
 
     def latexRowMethods(self, benchmark, endl='\\\\\hline\n'):

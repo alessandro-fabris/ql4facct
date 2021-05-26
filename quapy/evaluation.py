@@ -21,7 +21,7 @@ def artificial_sampling_prediction(
         eval_budget: int = None,
         n_jobs=1,
         random_seed=42,
-        verbose=True):
+        verbose=False):
     """
     Performs the predictions for all samples generated according to the artificial sampling protocol.
     :param model: the model in charge of generating the class prevalence estimations
@@ -57,7 +57,7 @@ def natural_sampling_prediction(
         n_repetitions=1,
         n_jobs=1,
         random_seed=42,
-        verbose=True):
+        verbose=False):
     """
     Performs the predictions for all samples generated according to the artificial sampling protocol.
     :param model: the model in charge of generating the class prevalence estimations
@@ -84,7 +84,7 @@ def _predict_from_indexes(
         model: BaseQuantifier,
         test: LabelledCollection,
         n_jobs=1,
-        verbose=True):
+        verbose=False):
 
     if model.aggregative: #isinstance(model, qp.method.aggregative.AggregativeQuantifier):
         # print('\tinstance of aggregative-quantifier')
@@ -126,7 +126,7 @@ def artificial_sampling_report(
         n_jobs=1,
         random_seed=42,
         error_metrics:Iterable[Union[str,Callable]]='mae',
-        verbose=True):
+        verbose=False):
 
     if isinstance(error_metrics, str):
         error_metrics=[error_metrics]
@@ -159,7 +159,7 @@ def artificial_sampling_eval(
         n_jobs=1,
         random_seed=42,
         error_metric:Union[str,Callable]='mae',
-        verbose=True):
+        verbose=False):
 
     if isinstance(error_metric, str):
         error_metric = qp.error.from_name(error_metric)

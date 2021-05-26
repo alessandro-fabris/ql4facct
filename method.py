@@ -1,10 +1,16 @@
 from copy import deepcopy
+
+from sklearn.gaussian_process import GaussianProcessRegressor
+from sklearn.linear_model import LogisticRegression
+from sklearn.neighbors import KNeighborsRegressor
 from sklearn.svm import LinearSVR
 import numpy as np
 import quapy as qp
 from quapy.data import LabelledCollection
+from quapy.method.aggregative import CC,ACC,PCC,PACC,EMQ,HDy
 from quapy.method.base import BaseQuantifier
 from abc import ABC, abstractmethod
+from tqdm import tqdm
 #from common import independence_gap
 
 
@@ -90,7 +96,7 @@ class NaturalSamplingAdjustment(IndependenceGapEstimator):
         estim_s1 = self.q1.quantify(s1)
         estim_gap = independence_gap(estim_s0[1], estim_s1[1])
         X = np.asarray([estim_gap, estim_s0[1], estim_s1[1]]).reshape(1,-1)
-        return self.reg.predict(X)[0]
+        return self.reg.predict(X).item()
 
 
 class ArtificialSamplingAdjustment(IndependenceGapEstimator):
@@ -110,22 +116,86 @@ class ArtificialSamplingAdjustment(IndependenceGapEstimator):
         self.q1.fit(s1tr)
 
         true_s0, true_s1, estim_s0, estim_s1 = _gen_artificial_samples(
-            self.q0, self.q1, s0te, s1te, self.sample_size, self.n_prevpoints, self.n_repetitions // self.n_prevpoints)
+            self.q0, self.q1, s0te, s1te, self.sample_size, self.n_prevpoints, self.n_repetitions // self.n_prevpoints
+        )
 
         true_gap = independence_gap(true_s0, true_s1)
         estim_gap = independence_gap(estim_s0, estim_s1)
 
-        X = np.vstack([estim_gap, estim_s0, estim_s1]).T
+        # X = np.vstack([estim_gap, estim_s0, estim_s1]).T
+        X = np.vstack([estim_s0, estim_s1]).T
         y = true_gap.reshape(-1,1)
 
-        self.reg = LinearSVR().fit(X, y)
+        #self.reg = LinearSVR().fit(X, y)
+        self.reg = GaussianProcessRegressor().fit(X, y)
 
     def predict(self, s0, s1):
         estim_s0 = self.q0.quantify(s0)
         estim_s1 = self.q1.quantify(s1)
         estim_gap = independence_gap(estim_s0[1], estim_s1[1])
-        X = np.asarray([estim_gap, estim_s0[1], estim_s1[1]]).reshape(1,-1)
-        return self.reg.predict(X)[0]
+        #X = np.asarray([estim_gap, estim_s0[1], estim_s1[1]]).reshape(1,-1)
+        X = np.asarray([estim_s0[1], estim_s1[1]]).reshape(1, -1)
+        return self.reg.predict(X).item()
+
+
+def _gen_artificial_random_samples_for_ensemble(qs, sTe, sample_size, n_prevs, n_repetitions):
+    true_s = []
+    estims_s = []
+    # todo: this can be optimized for aggregative methods...
+    for sample_s0 in tqdm(sTe.artificial_sampling_generator(sample_size, n_prevs, n_repetitions)):
+        true_s.append(sample_s0.prevalence()[1])
+        estims_s.append([q0i.quantify(sample_s0.instances)[1] for q0i in qs])
+    true_s = np.asarray(true_s)
+    estims_s = np.asarray(estims_s)
+
+    idx = np.random.permutation(len(true_s))
+    return true_s[idx], estims_s[idx]
+
+
+class ArtificialSamplingEnsambleAdjustment(IndependenceGapEstimator):
+
+    def __init__(self, sample_size=500, n_prevpoints=21, n_repetitions=1000):
+        lr = LogisticRegression()
+        quantifiers = [PACC, EMQ]
+        self.q0 = [deepcopy(q(lr)) for q in quantifiers]
+        self.q1 = [deepcopy(q(lr)) for q in quantifiers]
+        self.sample_size = sample_size
+        self.n_prevpoints = n_prevpoints
+        self.n_repetitions = n_repetitions
+
+    def fit(self, s0:LabelledCollection, s1:LabelledCollection):
+        s0tr, s0te = s0.split_stratified()
+        s1tr, s1te = s1.split_stratified()
+
+        for q0,q1 in zip(self.q0, self.q1):
+            print(f'fitting {q0.__class__.__name__}')
+            q0.fit(s0tr)
+            q1.fit(s1tr)
+        print('done')
+
+        true_s0, estims_s0 = _gen_artificial_random_samples_for_ensemble(self.q0, s0te, self.sample_size, self.n_prevpoints, self.n_repetitions// self.n_prevpoints)
+        true_s1, estims_s1 = _gen_artificial_random_samples_for_ensemble(self.q1, s1te, self.sample_size, self.n_prevpoints, self.n_repetitions// self.n_prevpoints)
+
+        true_gap = independence_gap(true_s0, true_s1)
+        #estim_gap = independence_gap(estim_s0, estim_s1)
+
+        # X = np.vstack([estim_gap, estim_s0, estim_s1]).T
+        #X = np.vstack([estim_s0, estim_s1]).T
+        X = np.hstack([estims_s0, estims_s1])
+        y = true_gap.reshape(-1,1)
+
+        print('fitting regressor')
+        #self.reg = LinearSVR().fit(X, y)
+        self.reg = GaussianProcessRegressor().fit(X, y)
+
+
+    def predict(self, s0, s1):
+        estim_s0 = [q0i.quantify(s0)[1] for q0i in self.q0]
+        estim_s1 = [q1i.quantify(s1)[1] for q1i in self.q1]
+        # estim_gap = independence_gap(estim_s0[1], estim_s1[1])
+        #X = np.asarray([estim_s0[1], estim_s1[1]]).reshape(1, -1)
+        X = np.asarray([estim_s0+estim_s1])
+        return self.reg.predict(X).item()
 
 
 class MixSamplingAdjustment(IndependenceGapEstimator):

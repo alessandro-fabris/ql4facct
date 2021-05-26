@@ -52,9 +52,9 @@ def generate_tables_joindatasets(protocol: Protocols, outs: List[Result], table_
     allresults = Result.concat(outs).select_protocol(protocol)
     method_names = allresults.data['Q_name'].unique()
     datasets = allresults.data['dataset'].unique()
-    dataset2name = {'cc_default_SEX': 'cc-default',
-                    'compas_race': 'compas',
-                    'adult_gender': 'adult'}
+    dataset2name = {'cc_default_SEX': 'CC-Default',
+                    'compas_race': 'COMPAS',
+                    'adult_gender': 'Adult'}
 
     QerrMAED3s0 = 'MAE$_{D_3^0}$'
     QerrMAED3s1 = 'MAE$_{D_3^1}$'

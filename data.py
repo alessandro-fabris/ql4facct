@@ -54,7 +54,7 @@ def adultcsv_loader(path, protected_attr, covariates=None, dummies=None, drop_fi
     return X, y, A
 
 
-def compascsv_loader(path, protected_attr, covariates=None, dummies=None, races_keep=None, drop_first_dummy=True, verbose=True):
+def compascsv_loader(path, protected_attr, covariates=None, dummies=None, races_keep=None, drop_first_dummy=True, verbose=True, df_out=False):
 
     if covariates is None:
         covariates = ['age', 'juv_fel_count', 'juv_misd_count', 'juv_other_count', 'priors_count', 'c_charge_degree']
@@ -107,9 +107,10 @@ def compascsv_loader(path, protected_attr, covariates=None, dummies=None, races_
 
     if verbose:
         print(f'A=1 is {protected_attr}:{privileged[protected_attr]}; y=1 is {y_col}:{pos_y_cl}')
-
-    return X, y, A
-
+    if df_out:
+        return X, y, A, df
+    else:
+        return X, y, A
 
 def ccdefaultcsv_loader(path, protected_attr, covariates=None, dummies=None, drop_first_dummy=True, verbose=True):
 

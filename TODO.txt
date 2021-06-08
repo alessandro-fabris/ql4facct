@@ -4,4 +4,5 @@ should we have different sample_size for D21, D20 to reflect the prevalence of h
 should we have different sample_size for D31, D30 to reflect the prevalence of hat_y in the data?
 clean print outputs
 mixed protocol (e.g. VAR_D1_PREVFLIP + VAR_D3_PREV)
-experiment on accuracy of classifiers underlying quantifiers?
+uniformar 4.6 e 4.7. classifier: lr, svm; methods: emq, pacc, cc; datasets: all 3. Per 4.6 (quantifying w/o classifying) also consider emq in modo clasificador (acc, f1)
+

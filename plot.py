@@ -50,7 +50,14 @@ def plot_prot1prev(results: Result, plotdir='./plots'):
         err = Q_df.independence_signed_error()
 
         pAeqY = np.around(Q_df.data['p_Aeqy'], decimals=2)
+
         vary_prev_D1["x_axis"].extend(pAeqY)
+        # indep_gap = Q_df.independence_gap()
+        # print(f'                indep gap: max={max(indep_gap)}, min={min(indep_gap)}')
+        # indep_gap = np.around(indep_gap, decimals=1)
+        # vary_prev_D1["x_axis"].extend(list(indep_gap))
+
+
         vary_prev_D1["quant"].extend([Q_name] * len(err))
         vary_prev_D1["y_axis"].extend(err)
 

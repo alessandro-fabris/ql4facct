@@ -41,7 +41,7 @@ skip_already_computed = True  # set to False to force re-generation of experimen
 fclassweight='balanced'
 f = LogisticRegression(class_weight=fclassweight)
 fname = 'LR'
-include_noSplitD2 = False
+include_noSplitD2 = True
 
 
 # Define the classifiers we would like to test
@@ -183,5 +183,5 @@ for dataset_name, data_path, loader, protected in datasets():
 # -------------------------------------------------
 # Generate general tables
 # -------------------------------------------------
-for protocol in Protocols:
-    generate_tables_joindatasets(protocol, all_results, table_path=join(table_dir, f'tab_{protocol}.tex'))
+for protocol in test_protocols:
+    generate_tables_joindatasets(protocol, all_results, table_path=join(table_dir, f'tab_{protocol}.tex'), incl_interm=True)

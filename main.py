@@ -11,7 +11,7 @@ from common import *
 from method import *
 from quapy.method.aggregative import CC, PCC, ACC, PACC, EMQ, HDy
 from common import Protocols
-from tabular import generate_tables_joindatasets
+from tabular import generate_tables_joindatasets, generate_tables
 from plot import generate_plots
 
 
@@ -71,9 +71,13 @@ def estimators():
     # yield 'NSA', NaturalSamplingAdjustment(PACC(LogisticRegression()))
     #yield 'ASA', ArtificialSamplingAdjustment(PACC(LogisticRegression()))
     #yield 'ASAem', ArtificialSamplingAdjustment(EMQ(LogisticRegression()))
-    yield 'ASAemGP', ArtificialSamplingAdjustment(EMQ(LogisticRegression())) # with k-nn regression
+    # yield 'ASAemGP', ArtificialSamplingAdjustment(EMQ(LogisticRegression())) # with k-nn regression
+    # yield 'ASAemSVR_gs', ArtificialSamplingAdjustment(EMQ(LogisticRegression()))  # with k-nn regression
     #yield 'ASAem2in', ArtificialSamplingAdjustment(EMQ(LogisticRegression()))
-    yield 'ASE2GP', ArtificialSamplingEnsambleAdjustment() #pacc+emq
+    # yield 'ASE2GP', ArtificialSamplingEnsambleAdjustment() #pacc+emq
+    # yield 'ASE2SVR_new', ArtificialSamplingEnsambleAdjustment()  # pacc+emq more efficient
+    # yield 'ASE2SVRrefit', ArtificialSamplingEnsambleAdjustment(n_repetitions=5000, refit=True)  # pacc+emq
+    yield 'ASE2SVRNoRefit', ArtificialSamplingEnsambleAdjustment(n_repetitions=5000, refit=False)  # pacc+emq
     #yield 'ASEm', ArtificialSamplingEnsambleAdjustment() # with all aggregatives
     #yield 'ASAem5', ArtificialSamplingAdjustment(EMQ(LogisticRegression()), n_repetitions=5000)
     #yield 'MSA', MixSamplingAdjustment(EMQ(LogisticRegression()), n_repetitions=1000)
@@ -119,8 +123,8 @@ if include_noSplitD2:
 else:
     options_splitD2 = [True]
 
-test_protocols = [Protocols.VAR_D3_PREV]
-# test_protocols = Protocols
+# test_protocols = [Protocols.VAR_D3_PREV]
+test_protocols = Protocols
 
 all_results = []
 for dataset_name, data_path, loader, protected in datasets():
@@ -173,7 +177,7 @@ for dataset_name, data_path, loader, protected in datasets():
     # Generate plots and tables specific to a dataset
     # -------------------------------------------------
     for protocol in test_protocols:
-        # generate_tables(protocol, results, table_path=join(table_dir, f'tab_{protocol}_{dataset_name}.tex'))
+        generate_tables(protocol, results, table_path=join(table_dir, f'tab_{protocol}_{dataset_name}.tex'))
         generate_plots(protocol, results, plotdir=join(plot_dir, dataset_name))
 
 # -------------------------------------------------

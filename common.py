@@ -1,5 +1,7 @@
 import itertools
 import pandas as pd
+from sklearn.metrics import f1_score
+
 import quapy as qp
 import numpy as np
 
@@ -43,6 +45,10 @@ class Result:
         }
         columns.update(kwargs)
         return Result(pd.DataFrame(columns))
+
+    @classmethod
+    def with_freecolumns(cls, **kwargs):
+        return Result(pd.DataFrame(kwargs))
 
     def independence_gap(self):
         d = self.data
@@ -482,16 +488,6 @@ def eval_prevalence_variations_D2_quant(D1, D2, D3, classifier, quantifier, samp
         trueD3var = np.asarray([D3var.prevalence()[1]] * len(estimD3var))
         trueD3fix = [D3fix.prevalence()[1]] * len(estimD3fix)
 
-        # natural samplings in D2fix
-        # trueD2sampFix, estimD3fix = [], []
-        # for D2sampleFix in D2fix.natural_sampling_generator(sample_size=sample_size, repeats=len(estimD3var)):
-        #     quantifierFix.fit(D2sampleFix)
-        #     estimD3fix.append(quantifierFix.quantify(D3fix.instances)[1])
-        #     trueD2sampFix.append(D2sampleFix.prevalence()[1])  # should be fixed at the original prevalence
-        # estimD3fix = np.asarray(estimD3fix)
-        # trueD2sampFix = np.asarray(trueD2sampFix)
-        # trueD3fix = [D3fix.prevalence()[1]] * len(estimD3fix)
-
         return trueD3var, estimD3var, trueD3fix, estimD3fix, trueD2sampVar, trueD2sampFix
 
     true_D3s0var, estim_D3s0var, true_D3s1fix, estim_D3s1fix, true_D2s0var, true_D2s1fix = \
@@ -572,6 +568,27 @@ def eval_prevalence_variations_D2_estim(D1, D2, D3, classifier, estimator, sampl
                                D3_s1_prev=D3_y1.prevalence()[1],
                                direct=direct_estimation
                                )
+
+
+def eval_clf_prevalence_variations_D2(D2split, D3split, clf, quantifiers, sample_size=1000, nprevs=101, nreps=2):
+    # artificial samplings in D2split
+    trueD2sample, accs, f1s = [], [], []
+    quantif_results = {q_name:[] for q_name,_ in quantifiers}
+    for D2sample in D2split.artificial_sampling_generator(sample_size=sample_size, n_prevalences=nprevs, repeats=nreps):
+        if D2sample.prevalence().prod() == 0: continue
+        clf.fit(*D2sample.Xy)
+        predictions = clf.predict(D3split.instances)
+        accs.append((predictions == D3split.labels).mean())
+        f1s.append(f1_score(D3split.labels, predictions))
+        trueD2sample.append(D2sample.prevalence()[1])
+        for q_name, q in quantifiers:
+            q.fit(D2sample)
+            prev = q.quantify(D3split.instances)[1]
+            quantif_results[q_name].append(prev)
+
+    trueD2sample = np.asarray(trueD2sample)
+    trueD3sample = np.asarray([D3split.prevalence()[1]] * len(trueD2sample))
+    return Result.with_freecolumns(trueD2sample=trueD2sample, trueD3sample=trueD3sample, accs=accs, f1s=f1s, **quantif_results)
 
 
 def eval_prevalence_variations_D3(D1, D2, D3, classifier, model, sample_size=500, nprevs=101, nreps=2, splitD2=True):
@@ -668,30 +685,23 @@ def eval_prevalence_variations_D3_estim(D1, D2, D3, classifier, estimator, sampl
                                D2_s1_prev=D2_y1.prevalence()[1],
                                direct=direct)
 
-    #def estim_signed_error(true_s0_A1, true_s1_A1, estim_s0_A1, estim_s1_A1):
-    """
-    Computes the gap between the estimated independence and the true independence.
-    Positive (negative) values thus represent a tendency to overestimate (underestimate) the true value.
-    """
-#    true_inds = independence_gap(true_s0_A1, true_s1_A1)
-#    estim_inds = independence_gap(estim_s0_A1, estim_s1_A1)
-#    errors = estim_inds - true_inds
-#    return errors
 
+def eval_clf_prevalence_variations_D3(D2split, D3split, clf, quantifiers, sample_size=1000, nprevs=101, nreps=2):
+    clf.fit(*D2split.Xy)
+    for _,q in quantifiers:
+        q.fit(D2split)
 
-# def independence_abs_error(true_s0_A1, true_s1_A1, estim_s0_A1, estim_s1_A1):
-#     """
-#     Computes the error (absolute value of the gaps) between the estimated independence and the true independence.
-#     Errors are always non-zero.
-#     """
-#     errors = np.abs(estim_signed_error(true_s0_A1, true_s1_A1, estim_s0_A1, estim_s1_A1))
-#     return errors
+    trueD3sample, accs, f1s = [], [], []
+    quantif_results = {q_name:[] for q_name,_ in quantifiers}
+    for D3sample in D3split.artificial_sampling_generator(sample_size=sample_size, n_prevalences=nprevs, repeats=nreps):
+        predictions = clf.predict(D3sample.instances)
+        accs.append((predictions == D3sample.labels).mean())
+        f1s.append(f1_score(D3sample.labels, predictions))
+        trueD3sample.append(D3sample.prevalence()[1])
+        for q_name, q in quantifiers:
+            prev = q.quantify(D3sample.instances)[1]
+            quantif_results[q_name].append(prev)
 
-
-# def independence_sqr_error(true_s0_A1, true_s1_A1, estim_s0_A1, estim_s1_A1):
-#     """
-#     Computes the error (absolute value of the gaps) between the estimated independence and the true independence.
-#     Errors are always non-zero.
-#     """
-#     errors = estim_signed_error(true_s0_A1, true_s1_A1, estim_s0_A1, estim_s1_A1) ** 2
-#     return errors
+    trueD3sample = np.asarray(trueD3sample)
+    trueD2sample = np.asarray([D2split.prevalence()[1]] * len(trueD3sample))
+    return Result.with_freecolumns(trueD2sample=trueD2sample, trueD3sample=trueD3sample, accs=accs, f1s=f1s, **quantif_results)

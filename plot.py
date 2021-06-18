@@ -5,7 +5,7 @@ import matplotlib.pyplot as plt
 import pandas as pd
 from common import Protocols, Result
 import os
-
+import quapy as qp
 
 def _boxplot_from_dict(d, filename, xlab='x_axis', tit=''):
     plt.figure()
@@ -164,3 +164,104 @@ def plot_prot3prev(results:Result, plotdir='./plots'):
                        xlab='$\mathbb{P}(A=1|\hat{Y}=1)$ in $\mathcal{D}_3$',
                        tit=title + f'{orig_prev_D21:.2f}')
 
+
+def generate_plots_clf(protocol: Protocols, outs:List[Result], plotdir='./plots'):
+    os.makedirs(plotdir, exist_ok=True)
+
+    results = Result.concat(outs)
+    classifiers = results.data['Clf_name'].unique()
+
+    for clf in classifiers:
+        if protocol == Protocols.VAR_D2_PREV:
+            plot_prot2prev_clf(results, 'D2y0', clf, plotdir)
+            plot_prot2prev_clf(results, 'D2y1', clf, plotdir)
+        elif protocol == Protocols.VAR_D3_PREV:
+            plot_prot3prev_clf(results, 'D3y0', clf, plotdir)
+            plot_prot3prev_clf(results, 'D3y1', clf, plotdir)
+
+
+def get_series(results, col_name, digitized, bins):
+    means = [(results.data[col_name].values)[digitized == i].mean() for i in range(1, len(bins)+1)]
+    stds  = [(results.data[col_name].values)[digitized == i].std() for i in range(1, len(bins)+1)]
+    return means, stds
+
+
+def get_errors(results, q_name, ground_truth, digitized, bins):
+    estimations = results.data[q_name].values
+    true_values = results.data[ground_truth].values
+    errors = qp.error.ae(true_values.reshape(-1, 1), estimations.reshape(-1, 1))
+    means = [errors[digitized == i].mean() for i in range(1, len(bins)+1)]
+    stds  = [errors[digitized == i].std() for i in range(1, len(bins)+1)]
+    return means, stds
+
+
+def plot_prot2prev_clf(results:Result, prefix, clf, plotdir='./plots'):
+    results = results.filter('prefix', prefix).filter('Clf_name', clf)
+
+    x = results.data['trueD2sample'].values
+    bins = sorted(np.unique(x))
+    digitized = np.digitize(x, bins)
+    x_means = [x[digitized == i].mean() for i in range(1, len(bins)+1)]
+
+    series = [
+        (f'{clf} accuracy', get_series(results, 'accs', digitized, bins)),
+        (f'{clf} $F_1$', get_series(results, 'f1s', digitized, bins)),
+    ]
+    quantifiers = results.data.columns[4:-4].values
+    for q_name in quantifiers:
+        q_means, q_std = get_errors(results, q_name, 'trueD3sample', digitized, bins)
+        series.append((f'{q_name} MAE', (q_means, q_std)))
+
+    d3prev = np.mean(results.data['trueD3sample'].values)
+    d3prevlabel = f"{prefix.replace('2', '3')} prev"
+    gen_plot(x_means, series,
+             title=f'Classifier {clf}',
+             xlabel=f'Prevalence variations in {prefix}',
+             ylabel='',
+             path=os.path.join(plotdir, prefix)+'.pdf',
+             vline=d3prev, vlinelabel=d3prevlabel)
+
+
+def plot_prot3prev_clf(results:Result, prefix, clf, plotdir='./plots'):
+    results = results.filter('prefix', prefix).filter('Clf_name', clf)
+
+    x = results.data['trueD3sample'].values
+    bins = sorted(np.unique(x))
+    digitized = np.digitize(x, bins)
+    x_means = [x[digitized == i].mean() for i in range(1, len(bins)+1)]
+
+    series = [
+        (f'{clf} accuracy', get_series(results, 'accs', digitized, bins)),
+        (f'{clf} $F_1$', get_series(results, 'f1s', digitized, bins)),
+    ]
+    quantifiers = results.data.columns[4:-4].values
+    for q_name in quantifiers:
+        q_means, q_std = get_errors(results, q_name, 'trueD3sample', digitized, bins)
+        series.append((f'{q_name} MAE', (q_means, q_std)))
+
+    d2prev = np.mean(results.data['trueD2sample'].values)
+    d2prevlabel = f"{prefix.replace('3','2')} prev"
+    gen_plot(x_means, series,
+             title=f'Classifier {clf}',
+             xlabel=f'Prevalence variations in {prefix}',
+             ylabel='',
+             path=os.path.join(plotdir, prefix)+'.pdf',
+             vline=d2prev, vlinelabel=d2prevlabel)
+
+
+def gen_plot(x_means, series, title, xlabel='', ylabel='', path=None, vline=None, vlinelabel=None):
+    plt.figure()
+    for label, (means,stds) in series:
+        means = np.asarray(means)
+        stds = np.asarray(stds)
+        plt.errorbar(x_means, means, label=label)
+        plt.fill_between(x_means, means - stds, means + stds, alpha=0.25)
+    if vline is not None:
+        plt.vlines(vline, -0.1, 1, colors='k', linestyles='dotted', label=vlinelabel)
+    plt.legend()
+    plt.title(title)
+    plt.xlabel(xlabel)
+    plt.ylabel(ylabel)
+    plt.xlim(np.min(x_means), np.max(x_means))
+    plt.ylim(-0.1, 1)
+    plt.savefig(path)

@@ -1,8 +1,7 @@
 fixare tabelle: 1. phantom should be column-wise (appears to be row-wise) 2. dagger appears not to work for higher_is_better. Rimuoverei direttamente il dagger dalle ultime due colonne, che non sono metriche di valutazione.
-tracciare sizes di tutto / #(A)
-should we have different sample_size for D21, D20 to reflect the prevalence of hat_y in the data?
-should we have different sample_size for D31, D30 to reflect the prevalence of hat_y in the data?
-clean print outputs
-mixed protocol (e.g. VAR_D1_PREVFLIP + VAR_D3_PREV)
-uniformar 4.6 e 4.7. classifier: lr, svm; methods: emq, pacc, cc; datasets: all 3. Per 4.6 (quantifying w/o classifying) also consider emq in modo clasificador (acc, f1)
+uniformar 4.6 e 4.7.
+    classifier: lr, svm;
+    methods: emq, pacc, cc;
+    datasets: all 3.
+    Per 4.6 (quantifying w/o classifying) also consider emq in modo clasificador (acc, f1)
 

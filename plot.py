@@ -213,8 +213,10 @@ def plot_prot2prev_clf(results:Result, prefix, clf, plotdir='./plots'):
     series = [
         (f'{clf} accuracy', get_series(results, 'accs', digitized, bins)),
         (f'{clf} $F_1$', get_series(results, 'f1s', digitized, bins)),
+        (f'EMQ accuracy', get_series(results, 'emq_accs', digitized, bins)),
+        (f'EMQ $F_1$', get_series(results, 'emq_f1s', digitized, bins)),
     ]
-    quantifiers = results.data.columns[4:-4].values
+    quantifiers = results.data.columns[6:-4].values
     for q_name in quantifiers:
         q_means, q_std = get_errors(results, q_name, 'trueD3sample', digitized, bins)
         series.append((f'{q_name} MAE', (q_means, q_std)))
@@ -240,8 +242,10 @@ def plot_prot3prev_clf(results:Result, prefix, clf, plotdir='./plots'):
     series = [
         (f'{clf} accuracy', get_series(results, 'accs', digitized, bins)),
         (f'{clf} $F_1$', get_series(results, 'f1s', digitized, bins)),
+        (f'EMQ accuracy', get_series(results, 'emq_accs', digitized, bins)),
+        (f'EMQ $F_1$', get_series(results, 'emq_f1s', digitized, bins)),
     ]
-    quantifiers = results.data.columns[4:-4].values
+    quantifiers = results.data.columns[6:-4].values
     for q_name in quantifiers:
         q_means, q_std = get_errors(results, q_name, 'trueD3sample', digitized, bins)
         series.append((f'{q_name} MAE', (q_means, q_std)))

@@ -11,6 +11,8 @@ from sklearn.base import BaseEstimator
 from copy import deepcopy
 from tqdm import tqdm
 from enum import Enum
+
+from quapy.method.aggregative import EMQ
 from quapy.method.base import BaseQuantifier
 
 
@@ -572,7 +574,7 @@ def eval_prevalence_variations_D2_estim(D1, D2, D3, classifier, estimator, sampl
 
 def eval_clf_prevalence_variations_D2(D2split, D3split, clf, quantifiers, sample_size=1000, nprevs=101, nreps=2):
     # artificial samplings in D2split
-    trueD2sample, accs, f1s = [], [], []
+    trueD2sample, accs, f1s, emq_accs, emq_f1s = [], [], [], [], []
     quantif_results = {q_name:[] for q_name,_ in quantifiers}
     for D2sample in D2split.artificial_sampling_generator(sample_size=sample_size, n_prevalences=nprevs, repeats=nreps):
         if D2sample.prevalence().prod() == 0: continue
@@ -585,10 +587,17 @@ def eval_clf_prevalence_variations_D2(D2split, D3split, clf, quantifiers, sample
             q.fit(D2sample)
             prev = q.quantify(D3split.instances)[1]
             quantif_results[q_name].append(prev)
+            if isinstance(q, EMQ):
+                emq_predictions = q.predict_proba(D3split.instances)[:,1]>0.5
+                emq_accs.append((emq_predictions == D3split.labels).mean())
+                emq_f1s.append(f1_score(D3split.labels, emq_predictions))
 
     trueD2sample = np.asarray(trueD2sample)
     trueD3sample = np.asarray([D3split.prevalence()[1]] * len(trueD2sample))
-    return Result.with_freecolumns(trueD2sample=trueD2sample, trueD3sample=trueD3sample, accs=accs, f1s=f1s, **quantif_results)
+    return Result.with_freecolumns(trueD2sample=trueD2sample, trueD3sample=trueD3sample,
+                                   accs=accs, f1s=f1s,
+                                   emq_accs=emq_accs, emq_f1s=emq_f1s,
+                                   **quantif_results)
 
 
 def eval_prevalence_variations_D3(D1, D2, D3, classifier, model, sample_size=500, nprevs=101, nreps=2, splitD2=True):
@@ -691,7 +700,7 @@ def eval_clf_prevalence_variations_D3(D2split, D3split, clf, quantifiers, sample
     for _,q in quantifiers:
         q.fit(D2split)
 
-    trueD3sample, accs, f1s = [], [], []
+    trueD3sample, accs, f1s, emq_accs, emq_f1s = [], [], [], [], []
     quantif_results = {q_name:[] for q_name,_ in quantifiers}
     for D3sample in D3split.artificial_sampling_generator(sample_size=sample_size, n_prevalences=nprevs, repeats=nreps):
         predictions = clf.predict(D3sample.instances)
@@ -701,7 +710,15 @@ def eval_clf_prevalence_variations_D3(D2split, D3split, clf, quantifiers, sample
         for q_name, q in quantifiers:
             prev = q.quantify(D3sample.instances)[1]
             quantif_results[q_name].append(prev)
+            if isinstance(q, EMQ):
+                emq_predictions = q.predict_proba(D3sample.instances)[:, 1] > 0.5
+                emq_accs.append((emq_predictions == D3sample.labels).mean())
+                emq_f1s.append(f1_score(D3sample.labels, emq_predictions))
+
 
     trueD3sample = np.asarray(trueD3sample)
     trueD2sample = np.asarray([D2split.prevalence()[1]] * len(trueD3sample))
-    return Result.with_freecolumns(trueD2sample=trueD2sample, trueD3sample=trueD3sample, accs=accs, f1s=f1s, **quantif_results)
+    return Result.with_freecolumns(trueD2sample=trueD2sample, trueD3sample=trueD3sample,
+                                   accs=accs, f1s=f1s,
+                                   emq_accs=emq_accs, emq_f1s=emq_f1s,
+                                   **quantif_results)

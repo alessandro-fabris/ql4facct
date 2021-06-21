@@ -56,7 +56,7 @@ def classifiers():
 # Define the quantifiers we would like to test
 # --------------------------------------------
 def quantifiers():
-    # yield 'CC', CC
+    yield 'CC', CC
     # yield 'PCC', PCC
     # yield 'ACC', ACC
     yield 'PACC', PACC
@@ -87,8 +87,8 @@ def estimators():
 # --------------------------------------------
 def datasets():
     yield 'adult', "datasets/adult.csv", adultcsv_loader, "gender"
-    # yield 'compas', "datasets/compas-scores-two-years.csv", compascsv_loader, "race"
-    # yield 'cc_default', "datasets/default of credit card clients.csv", ccdefaultcsv_loader, "SEX"
+    yield 'compas', "datasets/compas-scores-two-years.csv", compascsv_loader, "race"
+    yield 'cc_default', "datasets/default of credit card clients.csv", ccdefaultcsv_loader, "SEX"
 
 
 # instantiate all quantifiers x classifiers (wrapped also within model selection if requested)
@@ -97,8 +97,8 @@ def iter_methods():
         name = f'{q_name}({c_name})'
         q = q(c)
         yield name, q
-    for (e_name, e) in estimators():
-        yield e_name, e
+    # for (e_name, e) in estimators():
+    #     yield e_name, e
 
 
 def run_name():

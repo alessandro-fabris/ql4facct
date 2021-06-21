@@ -27,7 +27,6 @@ options = {
     'sample_size': 500,
 }
 result_dir = './results_clf'
-# table_dir = './tables'
 plot_dir = './plots_clf'
 
 skip_already_computed = True  # set to False to force re-generation of experiments
@@ -98,6 +97,7 @@ for dataset_name, data_path, loader, protected in datasets():
             for protocol in test_protocols:
                 quantifiers = [
                     (f'CC({Clf_name})', CC(deepcopy(clf))),
+                    (f'PACC({Clf_name})', PACC(deepcopy(clf))),
                     (f'EMQ({Clf_name})', EMQ(deepcopy(clf)))
                 ]
                 runname = run_name()

@@ -15,11 +15,6 @@ from tabular import generate_tables_joindatasets, generate_tables
 from plot import generate_plots_clf
 
 
-# uncomment datasets
-# datasplit_repetitions = 5
-# classifiers = LR
-
-
 # Define all hyper-parameters here
 # --------------------------------------------
 
@@ -70,7 +65,6 @@ def run_name():
 # --------------------------------------------
 
 os.makedirs(result_dir, exist_ok=True)
-# os.makedirs(table_dir, exist_ok=True)
 os.makedirs(plot_dir, exist_ok=True)
 
 test_protocols = [Protocols.VAR_D2_PREV, Protocols.VAR_D3_PREV]
@@ -98,35 +92,36 @@ for dataset_name, data_path, loader, protected in datasets():
     scaler = sklearn.preprocessing.StandardScaler()
     X = scaler.fit_transform(X)
 
-    results = []
-    for run, (D1, D2, D3, AD1) in enumerate(gen_split_data(X, y, A, repetitions=datasplit_repetitions)):
-        for (Clf_name, clf), protocol in itertools.product(classifiers(), test_protocols):
-            quantifiers = [
-                (f'CC({Clf_name})', CC(deepcopy(clf))),
-                (f'EMQ({Clf_name})', EMQ(deepcopy(clf)))
-            ]
-            runname = run_name()
+    for Clf_name, clf in classifiers():
+        results = []
+        for run, (D1, D2, D3, AD1) in enumerate(gen_split_data(X, y, A, repetitions=datasplit_repetitions)):
+            for protocol in test_protocols:
+                quantifiers = [
+                    (f'CC({Clf_name})', CC(deepcopy(clf))),
+                    (f'EMQ({Clf_name})', EMQ(deepcopy(clf)))
+                ]
+                runname = run_name()
 
-            f = f.fit(*D1.Xy)
-            D2_y1, D2_y0 = classify(f, D2)
-            D3_y1, D3_y0 = classify(f, D3)
+                f = f.fit(*D1.Xy)
+                D2_y1, D2_y0 = classify(f, D2)
+                D3_y1, D3_y0 = classify(f, D3)
 
-            if protocol == Protocols.VAR_D2_PREV:
-                run_and_save(eval_clf_prevalence_variations_D2, D2_y0, D3_y0, clf, quantifiers, options, Clf_name, run,
-                             dataset_name, 'D2y0', runname, results)
-                run_and_save(eval_clf_prevalence_variations_D2, D2_y1, D3_y1, clf, quantifiers, options, Clf_name, run,
-                             dataset_name, 'D2y1', runname, results)
+                if protocol == Protocols.VAR_D2_PREV:
+                    run_and_save(eval_clf_prevalence_variations_D2, D2_y0, D3_y0, clf, quantifiers, options, Clf_name, run,
+                                 dataset_name, 'D2y0', runname, results)
+                    run_and_save(eval_clf_prevalence_variations_D2, D2_y1, D3_y1, clf, quantifiers, options, Clf_name, run,
+                                 dataset_name, 'D2y1', runname, results)
 
-            elif protocol == Protocols.VAR_D3_PREV:
-                run_and_save(eval_clf_prevalence_variations_D3, D2_y0, D3_y0, clf, quantifiers, options, Clf_name, run,
-                             dataset_name, 'D3y0', runname, results)
-                run_and_save(eval_clf_prevalence_variations_D3, D2_y1, D3_y1, clf, quantifiers, options, Clf_name, run,
-                             dataset_name, 'D3y1', runname, results)
+                elif protocol == Protocols.VAR_D3_PREV:
+                    run_and_save(eval_clf_prevalence_variations_D3, D2_y0, D3_y0, clf, quantifiers, options, Clf_name, run,
+                                 dataset_name, 'D3y0', runname, results)
+                    run_and_save(eval_clf_prevalence_variations_D3, D2_y1, D3_y1, clf, quantifiers, options, Clf_name, run,
+                                 dataset_name, 'D3y1', runname, results)
 
 
-    # -------------------------------------------------
-    # Generate plots for this dataset
-    # -------------------------------------------------
-    generate_plots_clf(Protocols.VAR_D2_PREV, results, plotdir=join(plot_dir, dataset_name, Clf_name))
-    generate_plots_clf(Protocols.VAR_D3_PREV, results, plotdir=join(plot_dir, dataset_name, Clf_name))
+        # -------------------------------------------------
+        # Generate plots for this dataset
+        # -------------------------------------------------
+        generate_plots_clf(Protocols.VAR_D2_PREV, results, plotdir=join(plot_dir, dataset_name, Clf_name))
+        generate_plots_clf(Protocols.VAR_D3_PREV, results, plotdir=join(plot_dir, dataset_name, Clf_name))
 

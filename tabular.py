@@ -72,7 +72,9 @@ def generate_tables_joindatasets(protocol: Protocols, outs: List[Result], table_
         table = Table(columns, row_names,
                       lower_is_better=lower_better_cols,
                       greater_is_better=[Pr01, Pr02],
-                      ttest='ttest', prec_mean=3,
+                      ttest='ttest',
+                      ttest_benchmarks=lower_better_cols,
+                      prec_mean=3,
                       show_std=lower_better_cols,
                       prec_std=3, average=False, color=False)
         for Q_name in method_names:
@@ -115,7 +117,9 @@ class Table:
                  lower_is_better=True,
                  greater_is_better=False,
                  zero_is_better=False,
-                 ttest='ttest', prec_mean=3,
+                 ttest='ttest',
+                 ttest_benchmarks=True,
+                 prec_mean=3,
                  clean_zero=False, show_std=False, prec_std=3, average=True, missing=None, missing_str='--', color=True):
         assert ttest in self.VALID_TESTS, f'unknown test, valid are {self.VALID_TESTS}'
 
@@ -129,7 +133,7 @@ class Table:
         # keyed (#rows,#cols)-ndarrays holding computations from self.map['values']
         self._addmap('values', dtype=object)
 
-        def __x_is_better(flag):
+        def __get_bencmark_list(flag):
             if flag is True:
                 return benchmarks
             elif flag is False:
@@ -137,9 +141,10 @@ class Table:
             else:
                 return flag
 
-        self.lower_is_better = __x_is_better(lower_is_better)
-        self.greater_is_better = __x_is_better(greater_is_better)
-        self.zero_is_better = __x_is_better(zero_is_better)
+        self.lower_is_better = __get_bencmark_list(lower_is_better)
+        self.greater_is_better = __get_bencmark_list(greater_is_better)
+        self.zero_is_better = __get_bencmark_list(zero_is_better)
+        self.ttest_benchmarks = __get_bencmark_list(ttest_benchmarks)
 
         self.ttest = ttest
         self.prec_mean = prec_mean
@@ -247,7 +252,8 @@ class Table:
             if len(filled_cols_idx) <= 1:
                 continue
             col_means = [self.map['mean'][i,j] for j in filled_cols_idx]
-            best_pos = filled_cols_idx[np.argmin(col_means)]
+            best_func = np.argmin if self.benchmarks[i] in self.lower_is_better else np.argmax
+            best_pos = filled_cols_idx[best_func(col_means)]
 
             for j in filled_cols_idx:
                 if j==best_pos:
@@ -350,10 +356,10 @@ class Table:
             l = "\\textbf{"+l.strip()+"}"
 
         stat = ''
-        if self.ttest is not None and self.some_similar[j]:
+        if self.ttest is not None and benchmark in self.ttest_benchmarks:# :and self.some_similar[j]:
             test_label = self.map['ttest'][i,j]
             if test_label == 'Sim':
-                stat = '^{\dag\phantom{\dag}}'
+                stat = '^{\dag}'
             elif test_label == 'Same':
                 stat = '^{\ddag}'
             elif isbest or test_label == 'Diff':
@@ -397,10 +403,10 @@ class Table:
         if open_table:
             tab += "\center\n"
             if multirow_head is None:
-                tab += "\\begin{tabular}{c" + ('c' * self.nbenchmarks) + "} \\toprule\n"
+                tab += "\\begin{tabular}{l" + ('c' * self.nbenchmarks) + "} \\toprule\n"
                 tab += ' & '
             else:
-                tab += "\\begin{tabular}{cc" + ('c' * self.nbenchmarks) + "} \\toprule\n"
+                tab += "\\begin{tabular}{ll" + ('c' * self.nbenchmarks) + "} \\toprule\n"
                 tab += ' & & '
             tab += ' & '.join([benchmark_replace.get(col, col) for col in self.benchmarks])
             tab += ' \\\\ \\midrule\n'

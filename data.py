@@ -11,11 +11,10 @@ def adultcsv_loader(path, protected_attr, covariates=None, dummies=None, drop_fi
 
     if covariates is None:
         covariates = ['age', 'workclass', 'education', 'marital-status', 'occupation', 'capital-gain',
-                      'capital-loss', 'hours-per-week', 'native-country', 'income']
+                      'capital-loss', 'hours-per-week', 'native-country']
 
     if dummies is None:
-        dummies = ['workclass', 'education', 'marital-status', 'occupation', 'native-country',
-                   'income']
+        dummies = ['workclass', 'education', 'marital-status', 'occupation', 'native-country']
 
     privileged = {
         'gender': 'Male',

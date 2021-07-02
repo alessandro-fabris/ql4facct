@@ -25,7 +25,7 @@ from plot import generate_plots
 
 qp.environ['SAMPLE_SIZE'] = 100
 model_selection = False
-datasplit_repetitions = 2
+datasplit_repetitions = 5
 options = {
     'nprevs': 11,
     'nreps': 10,
@@ -41,7 +41,7 @@ skip_already_computed = True  # set to False to force re-generation of experimen
 fclassweight='balanced'
 f = LogisticRegression(class_weight=fclassweight)
 fname = 'LR'
-include_noSplitD2 = True
+include_noSplitD2 = False
 
 
 # Define the classifiers we would like to test
@@ -50,18 +50,18 @@ def classifiers():
     hyperparams = {'C': np.logspace(-3,3,7), 'class_weight': ['balanced', None]}
     # yield 'NB', MultinomialNB(), {}
     yield 'LR', LogisticRegression(), #hyperparams
-    # yield 'SVM', LinearSVC(), #hyperparams
+    yield 'SVM', LinearSVC(), #hyperparams
 
 
 # Define the quantifiers we would like to test
 # --------------------------------------------
 def quantifiers():
     yield 'CC', CC
-    # yield 'PCC', PCC
-    # yield 'ACC', ACC
+    yield 'PCC', PCC
+    yield 'ACC', ACC
     yield 'PACC', PACC
     yield 'EMQ', EMQ
-    # yield 'HDy', HDy
+    yield 'HDy', HDy
 
 
 # Define the independence-gap Estimators we would like to test
@@ -87,8 +87,8 @@ def estimators():
 # --------------------------------------------
 def datasets():
     yield 'adult', "datasets/adult.csv", adultcsv_loader, "gender"
-    yield 'compas', "datasets/compas-scores-two-years.csv", compascsv_loader, "race"
-    yield 'cc_default', "datasets/default of credit card clients.csv", ccdefaultcsv_loader, "SEX"
+    # yield 'compas', "datasets/compas-scores-two-years.csv", compascsv_loader, "race"
+    # yield 'cc_default', "datasets/default of credit card clients.csv", ccdefaultcsv_loader, "SEX"
 
 
 # instantiate all quantifiers x classifiers (wrapped also within model selection if requested)

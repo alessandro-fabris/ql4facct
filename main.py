@@ -67,7 +67,7 @@ def quantifiers():
 # Define the independence-gap Estimators we would like to test
 # --------------------------------------------
 def estimators():
-    # yield 'Dummy', DummyIGE()
+    yield 'Dummy', DummyIGE()
     # yield 'NSA', NaturalSamplingAdjustment(PACC(LogisticRegression()))
     #yield 'ASA', ArtificialSamplingAdjustment(PACC(LogisticRegression()))
     #yield 'ASAem', ArtificialSamplingAdjustment(EMQ(LogisticRegression()))
@@ -86,7 +86,7 @@ def estimators():
 # Define the datasets we would like to test
 # --------------------------------------------
 def datasets():
-    yield 'adult', "datasets/adult.csv", adultcsv_loader, "gender"
+    yield 'adult', "datasets/adult2.csv", adultcsv_loader, "gender"
     # yield 'compas', "datasets/compas-scores-two-years.csv", compascsv_loader, "race"
     # yield 'cc_default', "datasets/default of credit card clients.csv", ccdefaultcsv_loader, "SEX"
 

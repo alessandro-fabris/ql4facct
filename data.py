@@ -31,7 +31,7 @@ def adultcsv_loader(path, protected_attr, covariates=None, dummies=None, drop_fi
         cols = ['age', 'workclass', 'fnlwgt', 'education', 'education-num', 'marital-status', 'occupation',
                 'relationship', 'race', 'gender', 'capital-gain', 'capital-loss', 'hours-per-week',
                 'native-country', 'income']
-        df = pd.read_csv(path)
+        df = pd.read_csv(path, header=None, skipinitialspace=True)
         df.columns = cols
         df["income"].replace({"<=50K.": "<=50K", ">50K.": ">50K"}, inplace=True)
         df.reset_index(drop=True, inplace=True)

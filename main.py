@@ -41,7 +41,7 @@ skip_already_computed = True  # set to False to force re-generation of experimen
 fclassweight='balanced'
 f = LogisticRegression(class_weight=fclassweight)
 fname = 'LR'
-include_noSplitD2 = False
+include_noSplitD2 = True
 
 
 # Define the classifiers we would like to test
@@ -49,19 +49,19 @@ include_noSplitD2 = False
 def classifiers():
     hyperparams = {'C': np.logspace(-3,3,7), 'class_weight': ['balanced', None]}
     # yield 'NB', MultinomialNB(), {}
-    # yield 'LR', LogisticRegression(), #hyperparams
-    yield 'SVM', LinearSVC(), #hyperparams
+    yield 'LR', LogisticRegression(), #hyperparams
+    # yield 'SVM', LinearSVC(), #hyperparams
 
 
 # Define the quantifiers we would like to test
 # --------------------------------------------
 def quantifiers():
     yield 'CC', CC
-    yield 'PCC', PCC
-    yield 'ACC', ACC
+    # yield 'PCC', PCC
+    # yield 'ACC', ACC
     yield 'PACC', PACC
     yield 'EMQ', EMQ
-    yield 'HDy', HDy
+    # yield 'HDy', HDy
 
 
 # Define the independence-gap Estimators we would like to test
@@ -184,4 +184,4 @@ for dataset_name, data_path, loader, protected in datasets():
 # Generate general tables
 # -------------------------------------------------
 for protocol in test_protocols:
-    generate_tables_joindatasets(protocol, all_results, table_path=join(table_dir, f'tab_{protocol}.tex'), incl_interm=True)
+    generate_tables_joindatasets(protocol, all_results, table_path=join(table_dir, f'tab_{protocol}.tex'))

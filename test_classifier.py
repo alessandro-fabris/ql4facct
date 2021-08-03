@@ -41,14 +41,14 @@ fname = 'LR'
 def classifiers():
     hyperparams = {'C': np.logspace(-3,3,7), 'class_weight': ['balanced', None]}
     # yield 'NB', MultinomialNB(), {}
-    yield 'LR', LogisticRegression(), #hyperparams
+    # yield 'LR', LogisticRegression(), #hyperparams
     yield 'SVM', LinearSVC(), #hyperparams
 
 
 # Define the datasets we would like to test
 # --------------------------------------------
 def datasets():
-    yield 'adult', "datasets/adult.csv", adultcsv_loader, "gender"
+    yield 'adult', "datasets/adult2.csv", adultcsv_loader, "gender"
     yield 'compas', "datasets/compas-scores-two-years.csv", compascsv_loader, "race"
     yield 'cc_default', "datasets/default of credit card clients.csv", ccdefaultcsv_loader, "SEX"
 

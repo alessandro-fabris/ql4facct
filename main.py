@@ -15,11 +15,6 @@ from tabular import generate_tables_joindatasets, generate_tables
 from plot import generate_plots
 
 
-# uncomment datasets
-# datasplit_repetitions = 5
-# classifiers = LR
-
-
 # Define all hyper-parameters here
 # --------------------------------------------
 
@@ -42,15 +37,21 @@ fclassweight='balanced'
 f = LogisticRegression(class_weight=fclassweight)
 fname = 'LR'
 include_noSplitD2 = True
+if include_noSplitD2:
+    plot_dir+='-ablation'
 
 
-# Define the classifiers we would like to test
-# --------------------------------------------
-def classifiers():
-    hyperparams = {'C': np.logspace(-3,3,7), 'class_weight': ['balanced', None]}
-    # yield 'NB', MultinomialNB(), {}
-    yield 'LR', LogisticRegression(), #hyperparams
-    # yield 'SVM', LinearSVC(), #hyperparams
+# classifier_name = 'LR'
+classifier_name = 'SVM'
+
+if classifier_name=='LR':
+    classifier = LogisticRegression()
+elif classifier_name=='SVM':
+    classifier = LinearSVC()
+else:
+    raise ValueError('unknown classifier name', classifier_name)
+
+plot_dir = join(plot_dir, classifier_name)
 
 
 # Define the quantifiers we would like to test
@@ -93,7 +94,9 @@ def datasets():
 
 # instantiate all quantifiers x classifiers (wrapped also within model selection if requested)
 def iter_methods():
-    for (c_name, c), (q_name, q) in itertools.product(classifiers(), quantifiers()):
+    for (q_name, q) in quantifiers():
+        c_name = classifier_name
+        c = classifier
         name = f'{q_name}({c_name})'
         q = q(c)
         yield name, q
@@ -123,8 +126,8 @@ if include_noSplitD2:
 else:
     options_splitD2 = [True]
 
-# test_protocols = [Protocols.VAR_D3_PREV]
-test_protocols = Protocols
+test_protocols = [Protocols.VAR_D2_SIZE]
+# test_protocols = Protocols
 
 all_results = []
 for dataset_name, data_path, loader, protected in datasets():

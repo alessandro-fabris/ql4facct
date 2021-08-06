@@ -7,17 +7,33 @@ from common import Protocols, Result
 import os
 import quapy as qp
 
-def _boxplot_from_dict(d, filename, xlab='x_axis', tit=''):
+def _boxplot_from_dict(d, filename, xlab='x_axis', tit='', highlight_prevalence=None, prevalence_label=None, x2int=False):
+    # sns.set(style="ticks")
+    # sns.set_style("darkgrid")
     plt.figure()
     df = pd.DataFrame(d)
     df.sort_values("x_axis")
     ax = plt.gca()
-    ax.axhline(0, 0, 1, linestyle='--', color='k', label='optimal', zorder=0)
+    ax.axhline(0, 0, 1, linestyle='--', linewidth=2, color='k', label='optimal', zorder=0)
+
+    ax.set_axisbelow(True)
+    if x2int:
+        df=df.astype({'x_axis':int})
     sns.boxplot(x="x_axis", y="y_axis", hue="quant", data=df).set(xlabel=xlab, ylabel='Estimation error')
-    sns.despine(offset=10, trim=True)
+    if highlight_prevalence is not None:
+        # the training prevalence (a value in [0, 1]) has to be (linearly) transformed into the active range of the
+        # sns boxplot coordinates, which can be consulted with ax.get_xlim()
+        xs = df['x_axis'].unique()
+        xmin,xmax = ax.get_xlim()
+        xmin_real, xmax_real = min(xs) - 0.05, max(xs) + 0.05
+        a = (xmax-xmin)/(xmax_real-xmin_real)
+        b = xmin-a*xmin_real
+        plt.axvline(highlight_prevalence * a + b, 0, 1, linestyle='-', linewidth=3, color='g', label=prevalence_label, zorder=0, alpha=0.5)
+    plt.legend(loc=2, bbox_to_anchor=(1.05, 0.7), borderaxespad=0.)
     plt.title(tit)
+    plt.grid(True, axis='both')
     print(f'saving figure in {filename}')
-    plt.savefig(filename)
+    plt.savefig(filename, bbox_inches='tight')
 
 
 def _init_result_dict():
@@ -101,7 +117,8 @@ def plot_prot2size(results:Result, plotdir='./plots'):
     _boxplot_from_dict(vary_size_D2,
                        os.path.join(plotdir, 'protD2_vary_size.pdf'),
                        xlab=r'$|\mathcal{D}_2|$',
-                       tit='')
+                       tit='',
+                       x2int=True)
 
 
 def plot_prot2prev(results:Result, plotdir='./plots'):
@@ -127,15 +144,19 @@ def plot_prot2prev(results:Result, plotdir='./plots'):
         vary_prev_D21["quant"].extend([Q_name] * len(err))
         orig_prev_D31 = var_s0.data['D3_s1_prev'].mean()
 
-    title = "Test ($\mathcal{D}_3$) prevalence for quantifier: "
+    # title = "Test ($\mathcal{D}_3$) prevalence for quantifier: "
     _boxplot_from_dict(vary_prev_D20,
                        os.path.join(plotdir, 'protD2_vary_prev_d20.pdf'),
                        xlab='$\mathbb{P}(A=1|\hat{Y}=0)$ in $\mathcal{D}_2$',
-                       tit=title + f'{orig_prev_D30:.2f}')
+                       # tit=title + f'{orig_prev_D30:.2f}',
+                       highlight_prevalence=orig_prev_D30,
+                       prevalence_label='$p_{\mathcal{D}_{30}}(A=1)$')
     _boxplot_from_dict(vary_prev_D21,
                        os.path.join(plotdir, 'protD2_vary_prev_d21.pdf'),
                        xlab='$\mathbb{P}(A=1|\hat{Y}=1)$ in $\mathcal{D}_2$',
-                       tit=title + f'{orig_prev_D31:.2f}')
+                       # tit=title + f'{orig_prev_D31:.2f}',
+                       highlight_prevalence=orig_prev_D31,
+                       prevalence_label='$p_{\mathcal{D}_{31}}(A=1)$')
 
 
 def plot_prot3prev(results:Result, plotdir='./plots'):
@@ -161,15 +182,19 @@ def plot_prot3prev(results:Result, plotdir='./plots'):
         vary_prev_D31["quant"].extend([Q_name] * len(err))
         orig_prev_D21 = var_s0.data['D2_s1_prev'].mean()
 
-    title = "Training ($\mathcal{D}_2$) prevalence for quantifier: "
+    # title = "Training ($\mathcal{D}_2$) prevalence for quantifier: "
     _boxplot_from_dict(vary_prev_D30,
                        os.path.join(plotdir, 'protD3_vary_prev_d30.pdf'),
                        xlab='$\mathbb{P}(A=1|\hat{Y}=0)$ in $\mathcal{D}_3$',
-                       tit=title + f'{orig_prev_D20:.2f}')
+                       # tit=title + f'{orig_prev_D20:.2f}',
+                       highlight_prevalence=orig_prev_D20,
+                       prevalence_label='$p_{\mathcal{D}_{20}}(A=1)$')
     _boxplot_from_dict(vary_prev_D31,
                        os.path.join(plotdir, 'protD3_vary_prev_d31.pdf'),
                        xlab='$\mathbb{P}(A=1|\hat{Y}=1)$ in $\mathcal{D}_3$',
-                       tit=title + f'{orig_prev_D21:.2f}')
+                       # tit=title + f'{orig_prev_D21:.2f}',
+                       highlight_prevalence=orig_prev_D21,
+                       prevalence_label='$p_{\mathcal{D}_{21}}(A=1)$')
 
 
 def generate_plots_clf(protocol: Protocols, outs:List[Result], plotdir='./plots'):
@@ -222,10 +247,13 @@ def plot_prot2prev_clf(results:Result, prefix, clf, plotdir='./plots'):
         series.append((f'{q_name} MAE', (q_means, q_std)))
 
     d3prev = np.mean(results.data['trueD3sample'].values)
-    d3prevlabel = f"{prefix.replace('2', '3')} prev"
+    # d3prevlabel = f"{prefix.replace('2', '3')} prev"
+    yindex=prefix[-1]
+    d2prevlabel = '$p_{\mathcal{D}_{2'+yindex+'}}(A=1)$'
+    d3prevlabel = '$p_{\mathcal{D}_{3'+yindex+'}}(A=1)$'
     gen_plot(x_means, series,
-             title=f'Classifier {clf}',
-             xlabel=f'Prevalence variations in {prefix}',
+             title=clf + ' performance on protocol sample-prev-$\mathcal{D}_{2'+yindex+'}$',
+             xlabel=f'Variations in {d2prevlabel}',
              ylabel='',
              path=os.path.join(plotdir, prefix)+'.pdf',
              vline=d3prev, vlinelabel=d3prevlabel)
@@ -251,10 +279,13 @@ def plot_prot3prev_clf(results:Result, prefix, clf, plotdir='./plots'):
         series.append((f'{q_name} MAE', (q_means, q_std)))
 
     d2prev = np.mean(results.data['trueD2sample'].values)
-    d2prevlabel = f"{prefix.replace('3','2')} prev"
+    # d2prevlabel = f"{prefix.replace('3','2')} prev"
+    yindex = prefix[-1]
+    d2prevlabel = '$p_{\mathcal{D}_{2' + yindex + '}}(A=1)$'
+    d3prevlabel = '$p_{\mathcal{D}_{3' + yindex + '}}(A=1)$'
     gen_plot(x_means, series,
-             title=f'Classifier {clf}',
-             xlabel=f'Prevalence variations in {prefix}',
+             title=clf + ' performance on protocol sample-prev-$\mathcal{D}_{3'+yindex+'}$',
+             xlabel=f'Variations in {d3prevlabel}',
              ylabel='',
              path=os.path.join(plotdir, prefix)+'.pdf',
              vline=d2prev, vlinelabel=d2prevlabel)
@@ -269,10 +300,16 @@ def gen_plot(x_means, series, title, xlabel='', ylabel='', path=None, vline=None
         plt.fill_between(x_means, means - stds, means + stds, alpha=0.25)
     if vline is not None:
         plt.vlines(vline, -0.1, 1, colors='k', linestyles='dotted', label=vlinelabel)
-    plt.legend()
+        # plt.axvline(vline, -0.1, 1, linestyle='-', linewidth=3, color='g', label=vlinelabel, zorder=0, alpha=0.5)
     plt.title(title)
     plt.xlabel(xlabel)
     plt.ylabel(ylabel)
     plt.xlim(np.min(x_means), np.max(x_means))
     plt.ylim(-0.1, 1)
-    plt.savefig(path)
+    # plt.legend(bbox_to_anchor=(1.05, 1), loc='upper left')
+
+    plt.legend(loc=2, bbox_to_anchor=(1.05, 0.7), borderaxespad=0.)
+    plt.grid(True, axis='both')
+    plt.savefig(path, bbox_inches='tight')
+
+    # plt.savefig(path)

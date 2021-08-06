@@ -36,13 +36,11 @@ f = LogisticRegression(class_weight=fclassweight)
 fname = 'LR'
 
 
-# Define the classifiers we would like to test
-# --------------------------------------------
-def classifiers():
-    hyperparams = {'C': np.logspace(-3,3,7), 'class_weight': ['balanced', None]}
-    # yield 'NB', MultinomialNB(), {}
-    # yield 'LR', LogisticRegression(), #hyperparams
-    yield 'SVM', LinearSVC(), #hyperparams
+# classifier_name = 'LR'
+# classifier = LogisticRegression()
+
+classifier_name = 'SVM'
+classifier = LinearSVC()
 
 
 # Define the datasets we would like to test
@@ -91,37 +89,37 @@ for dataset_name, data_path, loader, protected in datasets():
     scaler = sklearn.preprocessing.StandardScaler()
     X = scaler.fit_transform(X)
 
-    for Clf_name, clf in classifiers():
-        results = []
-        for run, (D1, D2, D3, AD1) in enumerate(gen_split_data(X, y, A, repetitions=datasplit_repetitions)):
-            for protocol in test_protocols:
-                quantifiers = [
-                    (f'CC({Clf_name})', CC(deepcopy(clf))),
-                    (f'PACC({Clf_name})', PACC(deepcopy(clf))),
-                    (f'EMQ({Clf_name})', EMQ(deepcopy(clf)))
-                ]
-                runname = run_name()
+    Clf_name, clf = classifier_name, classifier
+    results = []
+    for run, (D1, D2, D3, AD1) in enumerate(gen_split_data(X, y, A, repetitions=datasplit_repetitions)):
+        for protocol in test_protocols:
+            quantifiers = [
+                (f'CC({Clf_name})', CC(deepcopy(clf))),
+                (f'PACC({Clf_name})', PACC(deepcopy(clf))),
+                (f'EMQ({Clf_name})', EMQ(deepcopy(clf)))
+            ]
+            runname = run_name()
 
-                f = f.fit(*D1.Xy)
-                D2_y1, D2_y0 = classify(f, D2)
-                D3_y1, D3_y0 = classify(f, D3)
+            f = f.fit(*D1.Xy)
+            D2_y1, D2_y0 = classify(f, D2)
+            D3_y1, D3_y0 = classify(f, D3)
 
-                if protocol == Protocols.VAR_D2_PREV:
-                    run_and_save(eval_clf_prevalence_variations_D2, D2_y0, D3_y0, clf, quantifiers, options, Clf_name, run,
-                                 dataset_name, 'D2y0', runname, results)
-                    run_and_save(eval_clf_prevalence_variations_D2, D2_y1, D3_y1, clf, quantifiers, options, Clf_name, run,
-                                 dataset_name, 'D2y1', runname, results)
+            if protocol == Protocols.VAR_D2_PREV:
+                run_and_save(eval_clf_prevalence_variations_D2, D2_y0, D3_y0, clf, quantifiers, options, Clf_name, run,
+                             dataset_name, 'D2y0', runname, results)
+                run_and_save(eval_clf_prevalence_variations_D2, D2_y1, D3_y1, clf, quantifiers, options, Clf_name, run,
+                             dataset_name, 'D2y1', runname, results)
 
-                elif protocol == Protocols.VAR_D3_PREV:
-                    run_and_save(eval_clf_prevalence_variations_D3, D2_y0, D3_y0, clf, quantifiers, options, Clf_name, run,
-                                 dataset_name, 'D3y0', runname, results)
-                    run_and_save(eval_clf_prevalence_variations_D3, D2_y1, D3_y1, clf, quantifiers, options, Clf_name, run,
-                                 dataset_name, 'D3y1', runname, results)
+            elif protocol == Protocols.VAR_D3_PREV:
+                run_and_save(eval_clf_prevalence_variations_D3, D2_y0, D3_y0, clf, quantifiers, options, Clf_name, run,
+                             dataset_name, 'D3y0', runname, results)
+                run_and_save(eval_clf_prevalence_variations_D3, D2_y1, D3_y1, clf, quantifiers, options, Clf_name, run,
+                             dataset_name, 'D3y1', runname, results)
 
 
-        # -------------------------------------------------
-        # Generate plots for this dataset
-        # -------------------------------------------------
-        generate_plots_clf(Protocols.VAR_D2_PREV, results, plotdir=join(plot_dir, dataset_name, Clf_name))
-        generate_plots_clf(Protocols.VAR_D3_PREV, results, plotdir=join(plot_dir, dataset_name, Clf_name))
+    # -------------------------------------------------
+    # Generate plots for this dataset
+    # -------------------------------------------------
+    generate_plots_clf(Protocols.VAR_D2_PREV, results, plotdir=join(plot_dir, dataset_name, Clf_name))
+    generate_plots_clf(Protocols.VAR_D3_PREV, results, plotdir=join(plot_dir, dataset_name, Clf_name))
 

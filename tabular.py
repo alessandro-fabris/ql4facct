@@ -401,7 +401,8 @@ class Table:
 
     def latexTabularMxB(self, benchmark_replace={}, method_replace={}, average=True, open_table=True, close_table=True, tab='', multirow_head=None):
         if open_table:
-            tab += "\center\n"
+            tab += "\n"
+            # tab += "\center\n"
             if multirow_head is None:
                 tab += "\\begin{tabular}{l" + ('c' * self.nbenchmarks) + "} \\toprule\n"
                 tab += ' & '

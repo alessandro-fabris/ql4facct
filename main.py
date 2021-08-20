@@ -25,7 +25,7 @@ options = {
     'nprevs': 11,
     'nreps': 10,
     'sample_size': 500,
-    'splitD2': True
+    'splitD2': False
 }
 result_dir = './results'
 table_dir = './tables'
@@ -41,8 +41,8 @@ if include_noSplitD2:
     plot_dir+='-ablation'
 
 
-# classifier_name = 'LR'
-classifier_name = 'SVM'
+classifier_name = 'LR'
+# classifier_name = 'SVM'
 
 if classifier_name=='LR':
     classifier = LogisticRegression()
@@ -58,30 +58,11 @@ plot_dir = join(plot_dir, classifier_name)
 # --------------------------------------------
 def quantifiers():
     yield 'CC', CC
-    # yield 'PCC', PCC
-    # yield 'ACC', ACC
+    yield 'PCC', PCC
+    yield 'ACC', ACC
     yield 'PACC', PACC
     yield 'EMQ', EMQ
-    # yield 'HDy', HDy
-
-
-# Define the independence-gap Estimators we would like to test
-# --------------------------------------------
-def estimators():
-    yield 'Dummy', DummyIGE()
-    # yield 'NSA', NaturalSamplingAdjustment(PACC(LogisticRegression()))
-    #yield 'ASA', ArtificialSamplingAdjustment(PACC(LogisticRegression()))
-    #yield 'ASAem', ArtificialSamplingAdjustment(EMQ(LogisticRegression()))
-    # yield 'ASAemGP', ArtificialSamplingAdjustment(EMQ(LogisticRegression())) # with k-nn regression
-    # yield 'ASAemSVR_gs', ArtificialSamplingAdjustment(EMQ(LogisticRegression()))  # with k-nn regression
-    #yield 'ASAem2in', ArtificialSamplingAdjustment(EMQ(LogisticRegression()))
-    # yield 'ASE2GP', ArtificialSamplingEnsambleAdjustment() #pacc+emq
-    # yield 'ASE2SVR_new', ArtificialSamplingEnsambleAdjustment()  # pacc+emq more efficient
-    # yield 'ASE2SVRrefit', ArtificialSamplingEnsambleAdjustment(n_repetitions=5000, refit=True)  # pacc+emq
-    yield 'ASE2SVRNoRefit', ArtificialSamplingEnsambleAdjustment(n_repetitions=5000, refit=False)  # pacc+emq
-    #yield 'ASEm', ArtificialSamplingEnsambleAdjustment() # with all aggregatives
-    #yield 'ASAem5', ArtificialSamplingAdjustment(EMQ(LogisticRegression()), n_repetitions=5000)
-    #yield 'MSA', MixSamplingAdjustment(EMQ(LogisticRegression()), n_repetitions=1000)
+    yield 'HDy', HDy
 
 
 # Define the datasets we would like to test
@@ -100,8 +81,6 @@ def iter_methods():
         name = f'{q_name}({c_name})'
         q = q(c)
         yield name, q
-    # for (e_name, e) in estimators():
-    #     yield e_name, e
 
 
 def run_name():
@@ -126,9 +105,9 @@ if include_noSplitD2:
 else:
     options_splitD2 = [True]
 
-test_protocols = [Protocols.VAR_D2_SIZE]
+test_protocols = [Protocols.VAR_D1_PREVFLIP]
 # test_protocols = Protocols
-
+#
 all_results = []
 for dataset_name, data_path, loader, protected in datasets():
     dataset_name = f'{dataset_name}_{protected}'

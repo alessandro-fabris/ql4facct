@@ -44,6 +44,7 @@ def generate_plots(protocol: Protocols, outs:List[Result], plotdir='./plots'):
     os.makedirs(plotdir, exist_ok=True)
 
     results = Result.concat(outs).select_protocol(protocol)
+    results['Q_name'] = results['Q_name'].str.replace('EMQ', 'SLD')
 
     if protocol == Protocols.VAR_D1_PREV:
         plot_prot1prev(results, plotdir)

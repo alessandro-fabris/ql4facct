@@ -238,8 +238,8 @@ def plot_prot2prev_clf(results:Result, prefix, clf, plotdir='./plots'):
     series = [
         (f'{clf} accuracy', get_series(results, 'accs', digitized, bins)),
         (f'{clf} $F_1$', get_series(results, 'f1s', digitized, bins)),
-        (f'EMQ accuracy', get_series(results, 'emq_accs', digitized, bins)),
-        (f'EMQ $F_1$', get_series(results, 'emq_f1s', digitized, bins)),
+        (f'SLD accuracy', get_series(results, 'emq_accs', digitized, bins)),
+        (f'SLD $F_1$', get_series(results, 'emq_f1s', digitized, bins)),
     ]
     quantifiers = results.data.columns[6:-4].values
     for q_name in quantifiers:
@@ -248,11 +248,11 @@ def plot_prot2prev_clf(results:Result, prefix, clf, plotdir='./plots'):
 
     d3prev = np.mean(results.data['trueD3sample'].values)
     # d3prevlabel = f"{prefix.replace('2', '3')} prev"
-    yindex=prefix[-1]
-    d2prevlabel = '$p_{\mathcal{D}_{2'+yindex+'}}(A=1)$'
-    d3prevlabel = '$p_{\mathcal{D}_{3'+yindex+'}}(A=1)$'
+    yindex='\oplus' if prefix[-1]=='1' else '\ominus'
+    d2prevlabel = '$p_{\mathcal{D}_{2}^'+yindex+'}(s)$'
+    d3prevlabel = '$p_{\mathcal{D}_{3}^'+yindex+'}(s)$'
     gen_plot(x_means, series,
-             title=clf + ' performance on protocol sample-prev-$\mathcal{D}_{2'+yindex+'}$',
+             title=clf + ' performance on protocol sample-prev-$\mathcal{D}_{2}^'+yindex+'$',
              xlabel=f'Variations in {d2prevlabel}',
              ylabel='',
              path=os.path.join(plotdir, prefix)+'.pdf',
@@ -270,8 +270,8 @@ def plot_prot3prev_clf(results:Result, prefix, clf, plotdir='./plots'):
     series = [
         (f'{clf} accuracy', get_series(results, 'accs', digitized, bins)),
         (f'{clf} $F_1$', get_series(results, 'f1s', digitized, bins)),
-        (f'EMQ accuracy', get_series(results, 'emq_accs', digitized, bins)),
-        (f'EMQ $F_1$', get_series(results, 'emq_f1s', digitized, bins)),
+        (f'SLD accuracy', get_series(results, 'emq_accs', digitized, bins)),
+        (f'SLD $F_1$', get_series(results, 'emq_f1s', digitized, bins)),
     ]
     quantifiers = results.data.columns[6:-4].values
     for q_name in quantifiers:
@@ -280,11 +280,11 @@ def plot_prot3prev_clf(results:Result, prefix, clf, plotdir='./plots'):
 
     d2prev = np.mean(results.data['trueD2sample'].values)
     # d2prevlabel = f"{prefix.replace('3','2')} prev"
-    yindex = prefix[-1]
-    d2prevlabel = '$p_{\mathcal{D}_{2' + yindex + '}}(A=1)$'
-    d3prevlabel = '$p_{\mathcal{D}_{3' + yindex + '}}(A=1)$'
+    yindex='\oplus' if prefix[-1]=='1' else '\ominus'
+    d2prevlabel = '$p_{\mathcal{D}_{2}^' + yindex + '}(s)$'
+    d3prevlabel = '$p_{\mathcal{D}_{3}^' + yindex + '}(s)$'
     gen_plot(x_means, series,
-             title=clf + ' performance on protocol sample-prev-$\mathcal{D}_{3'+yindex+'}$',
+             title=clf + ' performance on protocol sample-prev-$\mathcal{D}_{3}^'+yindex+'$',
              xlabel=f'Variations in {d3prevlabel}',
              ylabel='',
              path=os.path.join(plotdir, prefix)+'.pdf',

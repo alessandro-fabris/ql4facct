@@ -36,11 +36,16 @@ f = LogisticRegression(class_weight=fclassweight)
 fname = 'LR'
 
 
-# classifier_name = 'LR'
-# classifier = LogisticRegression()
+classifier_name = 'LR'
+# classifier_name = 'SVM'
 
-classifier_name = 'SVM'
-classifier = LinearSVC()
+if classifier_name=='LR':
+    classifier = LogisticRegression()
+elif classifier_name=='SVM':
+    classifier = LinearSVC()
+else:
+    raise ValueError('unknown classifier name', classifier_name)
+
 
 
 # Define the datasets we would like to test
@@ -96,7 +101,7 @@ for dataset_name, data_path, loader, protected in datasets():
             quantifiers = [
                 (f'CC({Clf_name})', CC(deepcopy(clf))),
                 (f'PACC({Clf_name})', PACC(deepcopy(clf))),
-                (f'EMQ({Clf_name})', EMQ(deepcopy(clf)))
+                (f'SLD({Clf_name})', EMQ(deepcopy(clf)))
             ]
             runname = run_name()
 

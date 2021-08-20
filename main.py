@@ -36,7 +36,7 @@ skip_already_computed = True  # set to False to force re-generation of experimen
 fclassweight='balanced'
 f = LogisticRegression(class_weight=fclassweight)
 fname = 'LR'
-include_noSplitD2 = True
+include_noSplitD2 = False
 if include_noSplitD2:
     plot_dir+='-ablation'
 
@@ -105,7 +105,7 @@ if include_noSplitD2:
 else:
     options_splitD2 = [True]
 
-test_protocols = [Protocols.VAR_D1_PREVFLIP]
+test_protocols = [Protocols.VAR_D3_PREV]
 # test_protocols = Protocols
 #
 all_results = []

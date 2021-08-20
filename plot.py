@@ -44,7 +44,7 @@ def generate_plots(protocol: Protocols, outs:List[Result], plotdir='./plots'):
     os.makedirs(plotdir, exist_ok=True)
 
     results = Result.concat(outs).select_protocol(protocol)
-    results['Q_name'] = results['Q_name'].str.replace('EMQ', 'SLD')
+    results.data['Q_name'] = results.data['Q_name'].str.replace('EMQ', 'SLD')
 
     if protocol == Protocols.VAR_D1_PREV:
         plot_prot1prev(results, plotdir)
@@ -80,7 +80,7 @@ def plot_prot1prev(results: Result, plotdir='./plots'):
 
     _boxplot_from_dict(vary_prev_D1,
                        os.path.join(plotdir, "protD1_vary_prev_d1.pdf"),
-                       xlab='$\mathbb{P}(A=Y)$ in $\mathcal{D}_1$')
+                       xlab='$Pr(Y=S)$ in $\mathcal{D}_1$')
 
 
 def plot_prot1flip(results:Result, plotdir='./plots'):
@@ -99,8 +99,7 @@ def plot_prot1flip(results:Result, plotdir='./plots'):
 
     _boxplot_from_dict(vary_prev_D1,
                        os.path.join(plotdir, 'protD1_vary_prev_d1_flip.pdf'),
-                       xlab='$\mathbb{P}(A=1|\hat{Y}=0) - \mathbb{P}(A=1|\hat{Y}=1)$ in $\mathcal{D}_3$ '
-                           'i.e. true indep. gap')
+                       xlab='$\Delta(s)$')
 
 
 def plot_prot2size(results:Result, plotdir='./plots'):
@@ -148,16 +147,16 @@ def plot_prot2prev(results:Result, plotdir='./plots'):
     # title = "Test ($\mathcal{D}_3$) prevalence for quantifier: "
     _boxplot_from_dict(vary_prev_D20,
                        os.path.join(plotdir, 'protD2_vary_prev_d20.pdf'),
-                       xlab='$\mathbb{P}(A=1|\hat{Y}=0)$ in $\mathcal{D}_2$',
+                       xlab='$Pr(S=s|\hat{Y}=\ominus)$ in $\\breve{\mathcal{D}}_2^\ominus$',
                        # tit=title + f'{orig_prev_D30:.2f}',
                        highlight_prevalence=orig_prev_D30,
-                       prevalence_label='$p_{\mathcal{D}_{30}}(A=1)$')
+                       prevalence_label='$p_{\mathcal{D}_{3}^\ominus}(s)$')
     _boxplot_from_dict(vary_prev_D21,
                        os.path.join(plotdir, 'protD2_vary_prev_d21.pdf'),
-                       xlab='$\mathbb{P}(A=1|\hat{Y}=1)$ in $\mathcal{D}_2$',
+                       xlab='$Pr(S=s|\hat{Y}=\oplus)$ in $\\breve{\mathcal{D}}_2^\oplus$',
                        # tit=title + f'{orig_prev_D31:.2f}',
                        highlight_prevalence=orig_prev_D31,
-                       prevalence_label='$p_{\mathcal{D}_{31}}(A=1)$')
+                       prevalence_label='$p_{\mathcal{D}_{3}^\oplus}(s)$')
 
 
 def plot_prot3prev(results:Result, plotdir='./plots'):
@@ -186,16 +185,16 @@ def plot_prot3prev(results:Result, plotdir='./plots'):
     # title = "Training ($\mathcal{D}_2$) prevalence for quantifier: "
     _boxplot_from_dict(vary_prev_D30,
                        os.path.join(plotdir, 'protD3_vary_prev_d30.pdf'),
-                       xlab='$\mathbb{P}(A=1|\hat{Y}=0)$ in $\mathcal{D}_3$',
+                       xlab='$P(S=s|\hat{Y}=\ominus)$ in $\\breve{\mathcal{D}}_3^\ominus$',
                        # tit=title + f'{orig_prev_D20:.2f}',
                        highlight_prevalence=orig_prev_D20,
-                       prevalence_label='$p_{\mathcal{D}_{20}}(A=1)$')
+                       prevalence_label='$p_{\mathcal{D}_{2}^\ominus}(s)$')
     _boxplot_from_dict(vary_prev_D31,
                        os.path.join(plotdir, 'protD3_vary_prev_d31.pdf'),
-                       xlab='$\mathbb{P}(A=1|\hat{Y}=1)$ in $\mathcal{D}_3$',
+                       xlab='$Pr(S=s|\hat{Y}=\oplus)$ in $\\breve{\mathcal{D}}_3^\oplus$',
                        # tit=title + f'{orig_prev_D21:.2f}',
                        highlight_prevalence=orig_prev_D21,
-                       prevalence_label='$p_{\mathcal{D}_{21}}(A=1)$')
+                       prevalence_label='$p_{\mathcal{D}_{2}^\oplus}(s)$')
 
 
 def generate_plots_clf(protocol: Protocols, outs:List[Result], plotdir='./plots'):

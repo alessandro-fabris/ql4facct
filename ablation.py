@@ -25,7 +25,7 @@ options = {
     'nprevs': 11,
     'nreps': 10,
     'sample_size': 500,
-    'splitD2': False
+    'splitD2': True
 }
 result_dir = './results'
 table_dir = './tables'
@@ -36,7 +36,7 @@ skip_already_computed = True  # set to False to force re-generation of experimen
 fclassweight='balanced'
 f = LogisticRegression(class_weight=fclassweight)
 fname = 'LR'
-include_noSplitD2 = False
+include_noSplitD2 = True
 if include_noSplitD2:
     plot_dir+='-ablation'
 
@@ -58,11 +58,8 @@ plot_dir = join(plot_dir, classifier_name)
 # --------------------------------------------
 def quantifiers():
     yield 'CC', CC
-    yield 'PCC', PCC
-    yield 'ACC', ACC
     yield 'PACC', PACC
     yield 'EMQ', EMQ
-    yield 'HDy', HDy
 
 
 # Define the datasets we would like to test
@@ -105,7 +102,7 @@ if include_noSplitD2:
 else:
     options_splitD2 = [True]
 
-# test_protocols = [Protocols.VAR_D2_PREV, Protocols.VAR_D3_PREV]
+#test_protocols = [Protocols.VAR_D1_PREVFLIP, Protocols.VAR_D2_SIZE]
 test_protocols = Protocols
 #
 all_results = []

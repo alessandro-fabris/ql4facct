@@ -147,16 +147,16 @@ def plot_prot2prev(results:Result, plotdir='./plots'):
     # title = "Test ($\mathcal{D}_3$) prevalence for quantifier: "
     _boxplot_from_dict(vary_prev_D20,
                        os.path.join(plotdir, 'protD2_vary_prev_d20.pdf'),
-                       xlab='$Pr(S=s|\hat{Y}=\ominus)$ in $\\breve{\mathcal{D}}_2^\ominus$',
+                       xlab='$Pr(S=1|\hat{Y}=\ominus)$ in $\\breve{\mathcal{D}}_2^\ominus$',
                        # tit=title + f'{orig_prev_D30:.2f}',
                        highlight_prevalence=orig_prev_D30,
-                       prevalence_label='$p_{\mathcal{D}_{3}^\ominus}(s)$')
+                       prevalence_label='$p_{\mathcal{D}_{3}^\ominus}(S=1)$')
     _boxplot_from_dict(vary_prev_D21,
                        os.path.join(plotdir, 'protD2_vary_prev_d21.pdf'),
-                       xlab='$Pr(S=s|\hat{Y}=\oplus)$ in $\\breve{\mathcal{D}}_2^\oplus$',
+                       xlab='$Pr(S=1|\hat{Y}=\oplus)$ in $\\breve{\mathcal{D}}_2^\oplus$',
                        # tit=title + f'{orig_prev_D31:.2f}',
                        highlight_prevalence=orig_prev_D31,
-                       prevalence_label='$p_{\mathcal{D}_{3}^\oplus}(s)$')
+                       prevalence_label='$p_{\mathcal{D}_{3}^\oplus}(S=1)$')
 
 
 def plot_prot3prev(results:Result, plotdir='./plots'):
@@ -185,16 +185,16 @@ def plot_prot3prev(results:Result, plotdir='./plots'):
     # title = "Training ($\mathcal{D}_2$) prevalence for quantifier: "
     _boxplot_from_dict(vary_prev_D30,
                        os.path.join(plotdir, 'protD3_vary_prev_d30.pdf'),
-                       xlab='$P(S=s|\hat{Y}=\ominus)$ in $\\breve{\mathcal{D}}_3^\ominus$',
+                       xlab='$P(S=1|\hat{Y}=\ominus)$ in $\\breve{\mathcal{D}}_3^\ominus$',
                        # tit=title + f'{orig_prev_D20:.2f}',
                        highlight_prevalence=orig_prev_D20,
-                       prevalence_label='$p_{\mathcal{D}_{2}^\ominus}(s)$')
+                       prevalence_label='$p_{\mathcal{D}_{2}^\ominus}(S=1)$')
     _boxplot_from_dict(vary_prev_D31,
                        os.path.join(plotdir, 'protD3_vary_prev_d31.pdf'),
-                       xlab='$Pr(S=s|\hat{Y}=\oplus)$ in $\\breve{\mathcal{D}}_3^\oplus$',
+                       xlab='$Pr(S=1|\hat{Y}=\oplus)$ in $\\breve{\mathcal{D}}_3^\oplus$',
                        # tit=title + f'{orig_prev_D21:.2f}',
                        highlight_prevalence=orig_prev_D21,
-                       prevalence_label='$p_{\mathcal{D}_{2}^\oplus}(s)$')
+                       prevalence_label='$p_{\mathcal{D}_{2}^\oplus}(S=1)$')
 
 
 def generate_plots_clf(protocol: Protocols, outs:List[Result], plotdir='./plots'):
@@ -244,16 +244,18 @@ def plot_prot2prev_clf(results:Result, prefix, clf, plotdir='./plots'):
     quantifiers = results.data.columns[6:-4].values
     for q_name in quantifiers:
         q_means, q_std = get_errors(results, q_name, 'trueD3sample', digitized, bins)
+        q_name = q_name.replace('EMQ','SLD')
         series.append((f'{q_name} MAE', (q_means, q_std)))
 
     d3prev = np.mean(results.data['trueD3sample'].values)
     # d3prevlabel = f"{prefix.replace('2', '3')} prev"
     yindex='\oplus' if prefix[-1]=='1' else '\ominus'
-    d2prevlabel = '$p_{\mathcal{D}_{2}^'+yindex+'}(s)$'
-    d3prevlabel = '$p_{\mathcal{D}_{3}^'+yindex+'}(s)$'
+    d2prevlabel = '$p_{\\breve{\mathcal{D}}_{2}^'+yindex+'}(S=1)$'
+    d3prevlabel = '$p_{\mathcal{D}_{3}^'+yindex+'}(S=1)$'
     gen_plot(x_means, series,
-             title=clf + ' performance on protocol sample-prev-$\mathcal{D}_{2}^'+yindex+'$',
-             xlabel=f'Variations in {d2prevlabel}',
+             #title=clf + ' performance on protocol sample-prev-$\mathcal{D}_{2}^'+yindex+'$',
+             title=None,
+             xlabel=f'{d2prevlabel}',
              ylabel='',
              path=os.path.join(plotdir, prefix)+'.pdf',
              vline=d3prev, vlinelabel=d3prevlabel)
@@ -276,16 +278,18 @@ def plot_prot3prev_clf(results:Result, prefix, clf, plotdir='./plots'):
     quantifiers = results.data.columns[6:-4].values
     for q_name in quantifiers:
         q_means, q_std = get_errors(results, q_name, 'trueD3sample', digitized, bins)
+        q_name = q_name.replace('EMQ', 'SLD') 
         series.append((f'{q_name} MAE', (q_means, q_std)))
 
     d2prev = np.mean(results.data['trueD2sample'].values)
     # d2prevlabel = f"{prefix.replace('3','2')} prev"
     yindex='\oplus' if prefix[-1]=='1' else '\ominus'
-    d2prevlabel = '$p_{\mathcal{D}_{2}^' + yindex + '}(s)$'
-    d3prevlabel = '$p_{\mathcal{D}_{3}^' + yindex + '}(s)$'
+    d2prevlabel = '$p_{\mathcal{D}_{2}^' + yindex + '}(S=1)$'
+    d3prevlabel = '$p_{\\breve{\mathcal{D}}_{3}^' + yindex + '}(S=1)$'
     gen_plot(x_means, series,
-             title=clf + ' performance on protocol sample-prev-$\mathcal{D}_{3}^'+yindex+'$',
-             xlabel=f'Variations in {d3prevlabel}',
+             # title=clf + ' performance on protocol sample-prev-$\mathcal{D}_{3}^'+yindex+'$',
+             title=None,
+             xlabel=f'{d3prevlabel}',
              ylabel='',
              path=os.path.join(plotdir, prefix)+'.pdf',
              vline=d2prev, vlinelabel=d2prevlabel)
@@ -301,7 +305,8 @@ def gen_plot(x_means, series, title, xlabel='', ylabel='', path=None, vline=None
     if vline is not None:
         plt.vlines(vline, -0.1, 1, colors='k', linestyles='dotted', label=vlinelabel)
         # plt.axvline(vline, -0.1, 1, linestyle='-', linewidth=3, color='g', label=vlinelabel, zorder=0, alpha=0.5)
-    plt.title(title)
+    if title is not None:
+        plt.title(title)
     plt.xlabel(xlabel)
     plt.ylabel(ylabel)
     plt.xlim(np.min(x_means), np.max(x_means))

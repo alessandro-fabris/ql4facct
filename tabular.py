@@ -14,8 +14,8 @@ def generate_tables(protocol: Protocols, outs: List[Result], table_path):
 
     QerrMAED3s0 = 'MAE$_{D_3^0}$'
     QerrMAED3s1 = 'MAE$_{D_3^1}$'
-    Pr01 = '$P(\mathrm{MAE}<0.1)$'
-    Pr02 = '$P(\mathrm{MAE}<0.2)$'
+    Pr01 = '$P(\mathrm{AE}<0.1)$'
+    Pr02 = '$P(\mathrm{AE}<0.2)$'
     columns = ['MAE', 'MSE', QerrMAED3s0, QerrMAED3s1, Pr01, Pr02]
     table = Table(columns, list(method_names),
                   lower_is_better=['MAE', 'MSE', QerrMAED3s0, QerrMAED3s1],

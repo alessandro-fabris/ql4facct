@@ -26,15 +26,13 @@ def adultcsv_loader(path, protected_attr, covariates=None, dummies=None, drop_fi
         print('warning: some dummy-features are not in covariates')
         dummies = [d for d in dummies if d in covariates]
 
-    df = pd.read_csv(path)
-    if path == "datasets/adult2.csv":
-        cols = ['age', 'workclass', 'fnlwgt', 'education', 'education-num', 'marital-status', 'occupation',
-                'relationship', 'race', 'gender', 'capital-gain', 'capital-loss', 'hours-per-week',
-                'native-country', 'income']
-        df = pd.read_csv(path, header=None, skipinitialspace=True)
-        df.columns = cols
-        df["income"].replace({"<=50K.": "<=50K", ">50K.": ">50K"}, inplace=True)
-        df.reset_index(drop=True, inplace=True)
+    cols = ['age', 'workclass', 'fnlwgt', 'education', 'education-num', 'marital-status', 'occupation',
+            'relationship', 'race', 'gender', 'capital-gain', 'capital-loss', 'hours-per-week',
+            'native-country', 'income']
+    df = pd.read_csv(path, header=None, skipinitialspace=True)
+    df.columns = cols
+    df["income"].replace({"<=50K.": "<=50K", ">50K.": ">50K"}, inplace=True)
+    df.reset_index(drop=True, inplace=True)
     if remove_missing:
         # removing entries with missing values, may want to keep and treat as separate class instead
         df = df[(df != '?').all(axis=1)]

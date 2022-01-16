@@ -7,7 +7,7 @@ import quapy.error
 from common import Protocols, Result
 
 
-def generate_tables(protocol: Protocols, outs: List[Result], table_path):
+def generate_tables(protocol: Protocols, outs: List[Result], table_path, regDP=False):
 
     allresults = Result.concat(outs).select_protocol(protocol)
     method_names = allresults.data['Q_name'].unique()
@@ -27,9 +27,9 @@ def generate_tables(protocol: Protocols, outs: List[Result], table_path):
     for Q_name in method_names:
         results = allresults.filter('Q_name', Q_name)
         print(f'{Q_name} has {len(results)} outs')
-        s_error = results.independence_signed_error()
-        abs_error = results.independence_abs_error()
-        sqr_error = results.independence_sqr_error()
+        s_error = results.independence_signed_error(regDP)
+        abs_error = results.independence_abs_error(regDP)
+        sqr_error = results.independence_sqr_error(regDP)
         qs0 = results.D3s0_abs_error()
         qs1 = results.D3s1_abs_error()
         p01 = (abs_error<0.1)*1
@@ -47,7 +47,7 @@ def generate_tables(protocol: Protocols, outs: List[Result], table_path):
         foo.write(table.latexTabularMxB(average=False))
 
 
-def generate_tables_joindatasets(protocol: Protocols, outs: List[Result], table_path, incl_interm=False):
+def generate_tables_joindatasets(protocol: Protocols, outs: List[Result], table_path, incl_interm=False, regDP=False):
 
     allresults = Result.concat(outs).select_protocol(protocol)
     method_names = allresults.data['Q_name'].unique()
@@ -81,9 +81,9 @@ def generate_tables_joindatasets(protocol: Protocols, outs: List[Result], table_
             results = allresults.filter('Q_name', Q_name)
             results = results.filter('dataset', ds)
             # print(f'{Q_name} has {len(results)} outs')
-            s_error = results.independence_signed_error()
-            abs_error = results.independence_abs_error()
-            sqr_error = results.independence_sqr_error()
+            s_error = results.independence_signed_error(regDP)
+            abs_error = results.independence_abs_error(regDP)
+            sqr_error = results.independence_sqr_error(regDP)
             qs0 = results.D3s0_abs_error()
             qs1 = results.D3s1_abs_error()
             p01 = (abs_error<0.1)*1

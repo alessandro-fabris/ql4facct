@@ -40,31 +40,31 @@ def _init_result_dict():
     return {"y_axis": [], "x_axis": [], "quant": []}
 
 
-def generate_plots(protocol: Protocols, outs:List[Result], plotdir='./plots'):
+def generate_plots(protocol: Protocols, outs:List[Result], plotdir='./plots', regDP=False):
     os.makedirs(plotdir, exist_ok=True)
 
     results = Result.concat(outs).select_protocol(protocol)
     results.data['Q_name'] = results.data['Q_name'].str.replace('EMQ', 'SLD')
 
     if protocol == Protocols.VAR_D1_PREV:
-        plot_prot1prev(results, plotdir)
+        plot_prot1prev(results, plotdir, regDP)
     elif protocol == Protocols.VAR_D1_PREVFLIP:
-        plot_prot1flip(results, plotdir)
+        plot_prot1flip(results, plotdir, regDP)
     elif protocol == Protocols.VAR_D2_SIZE:
-        plot_prot2size(results, plotdir)
+        plot_prot2size(results, plotdir, regDP)
     elif protocol == Protocols.VAR_D2_PREV:
-        plot_prot2prev(results, plotdir)
+        plot_prot2prev(results, plotdir, regDP)
     elif protocol == Protocols.VAR_D3_PREV:
-        plot_prot3prev(results, plotdir)
+        plot_prot3prev(results, plotdir, regDP)
 
 
-def plot_prot1prev(results: Result, plotdir='./plots'):
+def plot_prot1prev(results: Result, plotdir='./plots', regDP=False):
     vary_prev_D1 = _init_result_dict()
 
     method_names = results.data['Q_name'].unique()
     for Q_name in method_names:
         Q_df = results.filter('Q_name', Q_name)
-        err = Q_df.independence_signed_error()
+        err = Q_df.independence_signed_error(regDP)
 
         pAeqY = np.around(Q_df.data['p_Aeqy'], decimals=2)
 
@@ -83,14 +83,14 @@ def plot_prot1prev(results: Result, plotdir='./plots'):
                        xlab='$Pr(Y=S)$ in $\mathcal{D}_1$')
 
 
-def plot_prot1flip(results:Result, plotdir='./plots'):
+def plot_prot1flip(results:Result, plotdir='./plots', regDP=False):
     vary_prev_D1 = _init_result_dict()
 
     method_names = results.data['Q_name'].unique()
     for Q_name in method_names:
         Q_df = results.filter('Q_name', Q_name)
-        err = Q_df.independence_signed_error()
-        indep_gap = Q_df.independence_gap()
+        err = Q_df.independence_signed_error(regDP)
+        indep_gap = Q_df.independence_gap(regDP)
 
         indep_gap = np.around(indep_gap, decimals=1)
         vary_prev_D1["x_axis"].extend(list(indep_gap))
@@ -102,14 +102,14 @@ def plot_prot1flip(results:Result, plotdir='./plots'):
                        xlab='$\Delta(s)$')
 
 
-def plot_prot2size(results:Result, plotdir='./plots'):
+def plot_prot2size(results:Result, plotdir='./plots', regDP=False):
     vary_size_D2 = _init_result_dict()
 
     method_names = results.data['Q_name'].unique()
 
     for Q_name in method_names:
         Q_df = results.filter('Q_name', Q_name)
-        err = Q_df.independence_signed_error()
+        err = Q_df.independence_signed_error(regDP)
         vary_size_D2["x_axis"].extend(list(Q_df.data['size_D2']))
         vary_size_D2["y_axis"].extend(list(err))
         vary_size_D2["quant"].extend([Q_name] * len(err))
@@ -121,7 +121,9 @@ def plot_prot2size(results:Result, plotdir='./plots'):
                        x2int=True)
 
 
-def plot_prot2prev(results:Result, plotdir='./plots'):
+def plot_prot2prev(results:Result, plotdir='./plots', regDP=False):
+    if regDP:
+        raise Exception('Not implemented yet')
     vary_prev_D20 = _init_result_dict()
     vary_prev_D21 = _init_result_dict()
 
@@ -159,7 +161,9 @@ def plot_prot2prev(results:Result, plotdir='./plots'):
                        prevalence_label='$p_{\mathcal{D}_{3}^\oplus}(S=1)$')
 
 
-def plot_prot3prev(results:Result, plotdir='./plots'):
+def plot_prot3prev(results:Result, plotdir='./plots', regDP=False):
+    if regDP:
+        raise Exception('Not implemented yet')
     vary_prev_D30 = _init_result_dict()
     vary_prev_D31 = _init_result_dict()
 

@@ -14,6 +14,10 @@ from common import Protocols
 from tabular import generate_tables_joindatasets, generate_tables
 from plot import generate_plots
 
+# TODO for regDP:
+# - handle ablation study
+# - handle direct estimate a-la-chen
+
 
 # Define all hyper-parameters here
 # --------------------------------------------
@@ -25,13 +29,17 @@ options = {
     'nprevs': 11,
     'nreps': 10,
     'sample_size': 500,
-    'splitD2': False
+    'splitD2': False,
+    'regDP': True
 }
 result_dir = './results'
 table_dir = './tables'
 plot_dir = './plots'
 
 skip_already_computed = True  # set to False to force re-generation of experiments
+
+if options['regDP']:
+    result_dir = './results_rdp'
 
 fclassweight='balanced'
 f = LogisticRegression(class_weight=fclassweight)
@@ -69,8 +77,8 @@ def quantifiers():
 # --------------------------------------------
 def datasets():
     yield 'adult', "datasets/adult.csv", adultcsv_loader, "gender"
-    yield 'compas', "datasets/compas-scores-two-years.csv", compascsv_loader, "race"
-    yield 'cc_default', "datasets/default of credit card clients.csv", ccdefaultcsv_loader, "SEX"
+    # yield 'compas', "datasets/compas-scores-two-years.csv", compascsv_loader, "race"
+    # yield 'cc_default', "datasets/default of credit card clients.csv", ccdefaultcsv_loader, "SEX"
 
 
 # instantiate all quantifiers x classifiers (wrapped also within model selection if requested)
@@ -105,8 +113,8 @@ if include_noSplitD2:
 else:
     options_splitD2 = [True]
 
-# test_protocols = [Protocols.VAR_D2_PREV, Protocols.VAR_D3_PREV]
-test_protocols = Protocols
+test_protocols = [Protocols.VAR_D2_PREV, Protocols.VAR_D3_PREV]
+# test_protocols = Protocols
 #
 all_results = []
 for dataset_name, data_path, loader, protected in datasets():
@@ -159,11 +167,11 @@ for dataset_name, data_path, loader, protected in datasets():
     # Generate plots and tables specific to a dataset
     # -------------------------------------------------
     for protocol in test_protocols:
-        generate_tables(protocol, results, table_path=join(table_dir, f'tab_{protocol}_{dataset_name}.tex'))
-        generate_plots(protocol, results, plotdir=join(plot_dir, dataset_name))
+        generate_tables(protocol, results, table_path=join(table_dir, f'tab_{protocol}_{dataset_name}.tex'), regDP=options['regDP'])
+        generate_plots(protocol, results, plotdir=join(plot_dir, dataset_name), regDP=options['regDP'])
 
 # -------------------------------------------------
 # Generate general tables
 # -------------------------------------------------
 for protocol in test_protocols:
-    generate_tables_joindatasets(protocol, all_results, table_path=join(table_dir, f'tab_{protocol}.tex'))
+    generate_tables_joindatasets(protocol, all_results, table_path=join(table_dir, f'tab_{protocol}.tex'), regDP=options['regDP'])

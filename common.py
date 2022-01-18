@@ -264,8 +264,9 @@ def eval_prevalence_variations_D1_quant(D1, D2, D3, AD1, classifier, quantifier,
         true_M0_A1.append(D3_y0.prevalence()[1])
         p_Aeqy.append(prevAeqY)
         p_yhat_D2.append(len(D2_y1) / (len(D2_y0) + len(D2_y1)))
-        p_yhat_D2.append(len(D2_y1) / (len(D2_y0) + len(D2_y1)))
         p_yhat_D3.append(len(D3_y1) / (len(D3_y0) + len(D3_y1)))
+        # if not(len(true_M0_A1) == len(true_M1_A1) == len(estim_M0_A1) == len(estim_M1_A1) == len(p_Aeqy) == len(p_yhat_D2) == len(p_yhat_D3)):
+        #     a=0
 
     return Result.with_columns(Protocols.VAR_D1_PREV, true_M0_A1, true_M1_A1, estim_M0_A1, estim_M1_A1,
                                p_Aeqy=p_Aeqy, p_yhat_D2=p_yhat_D2, p_yhat_D3=p_yhat_D3)

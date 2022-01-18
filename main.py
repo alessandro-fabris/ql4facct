@@ -77,8 +77,8 @@ def quantifiers():
 # --------------------------------------------
 def datasets():
     # yield 'adult', "datasets/adult.csv", adultcsv_loader, "gender"
-    yield 'compas', "datasets/compas-scores-two-years.csv", compascsv_loader, "race"
-    # yield 'cc_default', "datasets/default of credit card clients.csv", ccdefaultcsv_loader, "SEX"
+    # yield 'compas', "datasets/compas-scores-two-years.csv", compascsv_loader, "race"
+    yield 'cc_default', "datasets/default of credit card clients.csv", ccdefaultcsv_loader, "SEX"
 
 
 # instantiate all quantifiers x classifiers (wrapped also within model selection if requested)

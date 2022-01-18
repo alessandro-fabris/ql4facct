@@ -24,9 +24,20 @@ def independence_gap(ps_y0, ps_y1):
 def regular_independence_gap(ps_y0, ps_y1, py):
     # P(Y^=1|S=1) - P(Y^=1|S=0)
     ps = ps_y1*py + ps_y0*(1-py)
-    assert(all(0 < ps_ < 1 for ps_ in ps))
     rdp = -1 + ps_y1 * py / ps + (1 - ps_y0) * (1 - py) / (1 - ps)
-    assert(all(-1 < rdp_ < 1 for rdp_ in rdp))
+    # if not all(0 < ps_ < 1 for ps_ in ps):
+    #     idcs0 = [i for i, ps_ in enumerate(ps) if ps_ == 0]
+    #     idcs1 = [i for i, ps_ in enumerate(ps) if ps_ == 1]
+    #     rdp = -1 + ps_y1 * py / ps + (1 - ps_y0) * (1 - py) / (1 - ps)
+    #     rdp_ = rdp.tolist()
+    #     rdp_ps0 = [rdp_[i] for i in idcs0]
+    #     rdp_ps1 = [rdp_[i] for i in idcs1]
+    #     rdp[rdp.isna()]=3
+    #
+    #     a=0
+    # assert(all(0 < ps_ < 1 for ps_ in ps))
+    # assert(all(-1 < rdp_ < 1 for rdp_ in rdp))
+    # rdp[rdp.isna()] = 3
     return rdp
 
 class Protocols(Enum):
@@ -68,6 +79,7 @@ class Result:
         else:
             return independence_gap(d['trueD3s0A1'], d['trueD3s1A1'])
 
+
     def estim_independence_gap(self, regDP=False):
         d = self.data
         if 'direct' in d and not d['direct'].isnull().values.any():
@@ -83,6 +95,7 @@ class Result:
 
     def independence_signed_error(self, regDP=False):
         true_inds = self.independence_gap(regDP)
+        assert (all(-1 <= ig <= 1 for ig in true_inds))
         estim_inds = self.estim_independence_gap(regDP)
         errors = estim_inds - true_inds
         return errors
@@ -250,6 +263,7 @@ def eval_prevalence_variations_D1_quant(D1, D2, D3, AD1, classifier, quantifier,
         true_M1_A1.append(D3_y1.prevalence()[1])
         true_M0_A1.append(D3_y0.prevalence()[1])
         p_Aeqy.append(prevAeqY)
+        p_yhat_D2.append(len(D2_y1) / (len(D2_y0) + len(D2_y1)))
         p_yhat_D2.append(len(D2_y1) / (len(D2_y0) + len(D2_y1)))
         p_yhat_D3.append(len(D3_y1) / (len(D3_y0) + len(D3_y1)))
 

@@ -65,7 +65,8 @@ def plot_prot1prev(results: Result, plotdir='./plots', regDP=False):
     for Q_name in method_names:
         Q_df = results.filter('Q_name', Q_name)
         err = Q_df.independence_signed_error(regDP)
-
+        if err.isna().sum() > 0:
+            print('    Sample-prev-D1 ' + Q_name + ': ' + str(err.isna().sum()/err.size) + ' nan')
         pAeqY = np.around(Q_df.data['p_Aeqy'], decimals=2)
 
         vary_prev_D1["x_axis"].extend(pAeqY)
@@ -90,6 +91,8 @@ def plot_prot1flip(results:Result, plotdir='./plots', regDP=False):
     for Q_name in method_names:
         Q_df = results.filter('Q_name', Q_name)
         err = Q_df.independence_signed_error(regDP)
+        if err.isna().sum() > 0:
+            print('    Flip-prev-D1 ' + Q_name + ': ' + str(err.isna().sum()/err.size) + ' nan')
         indep_gap = Q_df.independence_gap(regDP)
 
         indep_gap = np.around(indep_gap, decimals=1)
@@ -110,6 +113,8 @@ def plot_prot2size(results:Result, plotdir='./plots', regDP=False):
     for Q_name in method_names:
         Q_df = results.filter('Q_name', Q_name)
         err = Q_df.independence_signed_error(regDP)
+        if err.isna().sum() > 0:
+            print('    Sample-size-D ' + Q_name + ': ' + str(err.isna().sum()/err.size) + ' nan')
         vary_size_D2["x_axis"].extend(list(Q_df.data['size_D2']))
         vary_size_D2["y_axis"].extend(list(err))
         vary_size_D2["quant"].extend([Q_name] * len(err))
@@ -122,8 +127,6 @@ def plot_prot2size(results:Result, plotdir='./plots', regDP=False):
 
 
 def plot_prot2prev(results:Result, plotdir='./plots', regDP=False):
-    if regDP:
-        raise Exception('Not implemented yet')
     vary_prev_D20 = _init_result_dict()
     vary_prev_D21 = _init_result_dict()
 
@@ -133,14 +136,18 @@ def plot_prot2prev(results:Result, plotdir='./plots', regDP=False):
         Q_df = results.filter('Q_name', Q_name)
 
         var_s0 = Q_df.filter('var_s', 0)
-        err = var_s0.independence_signed_error()
+        err = var_s0.independence_signed_error(regDP)
+        if err.isna().sum() > 0:
+            print('    Sample-prev-D20 ' + Q_name + ': ' + str(err.isna().sum()/err.size) + ' nan')
         vary_prev_D20["x_axis"].extend(list(var_s0.data['D2_s0_prev']))
         vary_prev_D20["y_axis"].extend(list(err))
         vary_prev_D20["quant"].extend([Q_name] * len(err))
         orig_prev_D30 = var_s0.data['D3_s0_prev'].mean()
 
         var_s1 = Q_df.filter('var_s', 1)
-        err = var_s1.independence_signed_error()
+        err = var_s1.independence_signed_error(regDP)
+        if err.isna().sum() > 0:
+            print('    Sample-prev-D21 ' + Q_name + ': ' + str(err.isna().sum()/err.size) + ' nan')
         vary_prev_D21["x_axis"].extend(list(var_s1.data['D2_s1_prev']))
         vary_prev_D21["y_axis"].extend(list(err))
         vary_prev_D21["quant"].extend([Q_name] * len(err))
@@ -162,8 +169,6 @@ def plot_prot2prev(results:Result, plotdir='./plots', regDP=False):
 
 
 def plot_prot3prev(results:Result, plotdir='./plots', regDP=False):
-    if regDP:
-        raise Exception('Not implemented yet')
     vary_prev_D30 = _init_result_dict()
     vary_prev_D31 = _init_result_dict()
 
@@ -173,14 +178,18 @@ def plot_prot3prev(results:Result, plotdir='./plots', regDP=False):
         Q_df = results.filter('Q_name', Q_name)
 
         var_s0 = Q_df.filter('var_s', 0)
-        err = var_s0.independence_signed_error()
+        err = var_s0.independence_signed_error(regDP)
+        if err.isna().sum() > 0:
+            print('    Sample-prev-30 ' + Q_name + ': ' + str(err.isna().sum()/err.size) + ' nan')
         vary_prev_D30["x_axis"].extend(list(var_s0.data['trueD3s0A1']))
         vary_prev_D30["y_axis"].extend(list(err))
         vary_prev_D30["quant"].extend([Q_name] * len(err))
         orig_prev_D20 = var_s0.data['D2_s0_prev'].mean()
 
         var_s1 = Q_df.filter('var_s', 1)
-        err = var_s1.independence_signed_error()
+        err = var_s1.independence_signed_error(regDP)
+        if err.isna().sum() > 0:
+            print('    Sample-prev-31 ' + Q_name + ': ' + str(err.isna().sum()/err.size) + ' nan')
         vary_prev_D31["x_axis"].extend(list(var_s1.data['trueD3s1A1']))
         vary_prev_D31["y_axis"].extend(list(err))
         vary_prev_D31["quant"].extend([Q_name] * len(err))

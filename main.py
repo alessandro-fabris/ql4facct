@@ -16,7 +16,7 @@ from plot import generate_plots
 
 # TODO for regDP:
 # - handle ablation study
-# - handle direct estimate a-la-chen
+# - direct estimate a-la-chen
 
 
 # Define all hyper-parameters here
@@ -76,8 +76,8 @@ def quantifiers():
 # Define the datasets we would like to test
 # --------------------------------------------
 def datasets():
-    yield 'adult', "datasets/adult.csv", adultcsv_loader, "gender"
-    # yield 'compas', "datasets/compas-scores-two-years.csv", compascsv_loader, "race"
+    # yield 'adult', "datasets/adult.csv", adultcsv_loader, "gender"
+    yield 'compas', "datasets/compas-scores-two-years.csv", compascsv_loader, "race"
     # yield 'cc_default', "datasets/default of credit card clients.csv", ccdefaultcsv_loader, "SEX"
 
 
@@ -113,8 +113,8 @@ if include_noSplitD2:
 else:
     options_splitD2 = [True]
 
-test_protocols = [Protocols.VAR_D2_PREV, Protocols.VAR_D3_PREV]
-# test_protocols = Protocols
+# test_protocols = [Protocols.VAR_D2_PREV]
+test_protocols = Protocols
 #
 all_results = []
 for dataset_name, data_path, loader, protected in datasets():

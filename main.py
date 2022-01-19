@@ -71,14 +71,15 @@ def quantifiers():
     yield 'PACC', PACC
     yield 'EMQ', EMQ
     yield 'HDy', HDy
+    yield 'WE', WeightedEstimator
 
 
 # Define the datasets we would like to test
 # --------------------------------------------
 def datasets():
-    # yield 'adult', "datasets/adult.csv", adultcsv_loader, "gender"
+    yield 'adult', "datasets/adult.csv", adultcsv_loader, "gender"
     # yield 'compas', "datasets/compas-scores-two-years.csv", compascsv_loader, "race"
-    yield 'cc_default', "datasets/default of credit card clients.csv", ccdefaultcsv_loader, "SEX"
+    # yield 'cc_default', "datasets/default of credit card clients.csv", ccdefaultcsv_loader, "SEX"
 
 
 # instantiate all quantifiers x classifiers (wrapped also within model selection if requested)
@@ -113,7 +114,7 @@ if include_noSplitD2:
 else:
     options_splitD2 = [True]
 
-# test_protocols = [Protocols.VAR_D2_PREV]
+# test_protocols = [Protocols.VAR_D1_PREV]
 test_protocols = Protocols
 #
 all_results = []

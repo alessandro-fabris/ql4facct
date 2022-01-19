@@ -83,8 +83,8 @@ class Result:
     def estim_independence_gap(self, regDP=False):
         d = self.data
         if 'direct' in d and not d['direct'].isnull().values.any():
+            # print('DIRECT IS PRESENT', d['Q_name'].unique())
             return d['direct']
-            #print('DIRECT IS PRESENT', d['Q_name'].unique())
         else:
             #print('--------', d['Q_name'].unique())
             # return independence_gap(d['estimD3s0A1'], d['estimD3s1A1'])
@@ -274,7 +274,7 @@ def eval_prevalence_variations_D1_quant(D1, D2, D3, AD1, classifier, quantifier,
 
 def eval_prevalence_variations_D1_estim(D1, D2, D3, AD1, classifier, estimator:IndependenceGapEstimator, sample_size=500, nprevs=101, nreps=2, splitD2=True):
     if not splitD2: print('warning: calling protocol with Independence Gap Estimator and splitD2=False')
-    true_M0_A1, true_M1_A1, estim_M0_A1, estim_M1_A1, p_Aeqy = [], [], [], [], []
+    true_M0_A1, true_M1_A1, estim_M0_A1, estim_M1_A1, p_Aeqy, p_yhat_D2, p_yhat_D3 = [], [], [], [], [], [], []
     direct_estimation = []
 
     for D2_y0, D2_y1, D3_y0, D3_y1, prevAeqY in __var_D1_generator(D1, D2, D3, AD1, classifier, sample_size, nprevs, nreps):
@@ -286,9 +286,11 @@ def eval_prevalence_variations_D1_estim(D1, D2, D3, AD1, classifier, estimator:I
         true_M1_A1.append(D3_y1.prevalence()[1])
         true_M0_A1.append(D3_y0.prevalence()[1])
         p_Aeqy.append(prevAeqY)
+        p_yhat_D2.append(len(D2_y1) / (len(D2_y0) + len(D2_y1)))
+        p_yhat_D3.append(len(D3_y1) / (len(D3_y0) + len(D3_y1)))
 
     return Result.with_columns(Protocols.VAR_D1_PREV, true_M0_A1, true_M1_A1, estim_M0_A1, estim_M1_A1,
-                               p_Aeqy=p_Aeqy, direct=direct_estimation)
+                               p_Aeqy=p_Aeqy, p_yhat_D2=p_yhat_D2, p_yhat_D3=p_yhat_D3, direct=direct_estimation)
 
 
 def __var_D1_flip_generator(D1, D2, D3, AD1, classifier, sample_size, nprevs, nreps):
@@ -378,7 +380,7 @@ def eval_prevalence_variations_D1_flip_quant(D1, D2, D3, AD1, classifier, quanti
 
 def eval_prevalence_variations_D1_flip_estim(D1, D2, D3, AD1, classifier, estimator, sample_size=500, nprevs=101, nreps=2, splitD2=True):
     if not splitD2: print('warning: calling protocol with Independence Gap Estimator and splitD2=False')
-    true_M0_A1, true_M1_A1, estim_M0_A1, estim_M1_A1, p_Aeqy = [], [], [], [], []
+    true_M0_A1, true_M1_A1, estim_M0_A1, estim_M1_A1, p_Aeqy, p_yhat_D2, p_yhat_D3 = [], [], [], [], [], [], []
     direct_estimation = []
 
     for D2_y0, D2_y1, D3_y0, D3_y1, prev in __var_D1_flip_generator(D1, D2, D3, AD1, classifier, sample_size, nprevs, nreps):
@@ -390,9 +392,11 @@ def eval_prevalence_variations_D1_flip_estim(D1, D2, D3, AD1, classifier, estima
         true_M1_A1.append(D3_y1.prevalence()[1])
         true_M0_A1.append(D3_y0.prevalence()[1])
         p_Aeqy.append(prev)
+        p_yhat_D2.append(len(D2_y1) / (len(D2_y0) + len(D2_y1)))
+        p_yhat_D3.append(len(D3_y1) / (len(D3_y0) + len(D3_y1)))
 
     return Result.with_columns(Protocols.VAR_D1_PREVFLIP, true_M0_A1, true_M1_A1, estim_M0_A1, estim_M1_A1,
-                               p_Aeqy=p_Aeqy, direct=direct_estimation)
+                               p_Aeqy=p_Aeqy, p_yhat_D2=p_yhat_D2, p_yhat_D3=p_yhat_D3, direct=direct_estimation)
 
 
 def eval_size_variations_D2(D1, D2, D3, classifier, model, nreps=10, sample_sizes=None, splitD2=True):
@@ -458,7 +462,7 @@ def eval_size_variations_D2_estim(D1, D2, D3, classifier, estimator, nreps=10, s
 
     def vary_and_test(estimator, D2, D2_y_hat, D3_y0, D3_y1, sample_sizes, nreps):
         estim_M0_A1, estim_M1_A1  = [], []
-        size_D2 = []
+        size_D2, p_yhat_D2, p_yhat_D3 = [], [], []
         direct_estimation = []
         for sample_D2, sample_idcs in tqdm(natural_sampling_generator_varsize(D2, sample_sizes, nreps),
                                            desc='training estimators at size variations in D2'):
@@ -472,19 +476,21 @@ def eval_size_variations_D2_estim(D1, D2, D3, classifier, estimator, nreps=10, s
             estim_M1_A1.append(0)
             estim_M0_A1.append(0)
             size_D2.append(len(sample_D2))
+            p_yhat_D2.append(len(sample_D2_y1) / (len(sample_D2_y0) + len(sample_D2_y1)))
+            p_yhat_D3.append(len(D3_y1) / (len(D3_y0) + len(D3_y1)))
 
         estim_M0_A1 = np.asarray(estim_M0_A1)
         estim_M1_A1 = np.asarray(estim_M1_A1)
         true_M0_A1 = np.asarray([D3_y0.prevalence()[1]] * len(estim_M0_A1))
         true_M1_A1 = np.asarray([D3_y1.prevalence()[1]] * len(estim_M1_A1))
 
-        return true_M0_A1, estim_M0_A1, true_M1_A1, estim_M1_A1, size_D2, direct_estimation
+        return true_M0_A1, estim_M0_A1, true_M1_A1, estim_M1_A1, size_D2, p_yhat_D2, p_yhat_D3, direct_estimation
 
-    true_D3_s0_A1, estim_D3_s0_A1, true_D3_s1_A1, estim_D3_s1_A1, size_D2, direct_estimation = \
+    true_D3_s0_A1, estim_D3_s0_A1, true_D3_s1_A1, estim_D3_s1_A1, size_D2, p_yhat_D2, p_yhat_D3, direct_estimation = \
         vary_and_test(estimator, D2, D2_y_hat, D3_y0, D3_y1, sample_sizes, nreps)
 
     return Result.with_columns(Protocols.VAR_D2_SIZE, true_D3_s0_A1, true_D3_s1_A1, estim_D3_s0_A1, estim_D3_s1_A1,
-                               size_D2=size_D2, direct=direct_estimation)
+                               size_D2=size_D2, p_yhat_D2=p_yhat_D2, p_yhat_D3=p_yhat_D3, direct=direct_estimation)
 
 
 def eval_prevalence_variations_D2(D1, D2, D3, classifier, model, sample_size=1000, nprevs=101, nreps=2, splitD2=True, regDP=False):
@@ -603,6 +609,8 @@ def eval_prevalence_variations_D2_estim(D1, D2, D3, classifier, estimator, sampl
     true_D2_s0_A1   = np.concatenate([true_D2s0var, true_D2s0fix])
     true_D2_s1_A1   = np.concatenate([true_D2s1fix, true_D2s1var])
     direct_estimation = np.asarray(direct_estimation1 + direct_estimation2)
+    p_yhat_D2 = 0.5  # sample_size / (2*sample_size)
+    p_yhat_D3 = len(D3_y1) / (len(D3_y0) + len(D3_y1))
 
     return Result.with_columns(Protocols.VAR_D2_PREV, true_D3_s0_A1, true_D3_s1_A1, estim_D3_s0_A1, estim_D3_s1_A1,
                                var_s=np.asarray([0] * len(true_D3s0var) + [1] * len(true_D3s1var)),
@@ -610,6 +618,8 @@ def eval_prevalence_variations_D2_estim(D1, D2, D3, classifier, estimator, sampl
                                D2_s1_prev=true_D2_s1_A1,
                                D3_s0_prev=D3_y0.prevalence()[1],
                                D3_s1_prev=D3_y1.prevalence()[1],
+                               p_yhat_D2=[p_yhat_D2] * len(true_D2_s0_A1),
+                               p_yhat_D3=[p_yhat_D3] * len(true_D2_s0_A1),
                                direct=direct_estimation
                                )
 
@@ -734,11 +744,15 @@ def eval_prevalence_variations_D3_estim(D1, D2, D3, classifier, estimator, sampl
     estim_D3_s0_A1 = 0
     estim_D3_s1_A1 = 0
     direct = np.asarray(direct1+direct2)
+    p_yhat_D2 = len(D2_y1) / (len(D2_y0) + len(D2_y1))
+    p_yhat_D3 = 0.5  # sample_size / (2*sample_size)
 
     return Result.with_columns(Protocols.VAR_D3_PREV, true_D3_s0_A1, true_D3_s1_A1, estim_D3_s0_A1, estim_D3_s1_A1,
                                var_s=np.asarray([0] * len(true_s0var) + [1] * len(true_s1var)),
                                D2_s0_prev=D2_y0.prevalence()[1],
                                D2_s1_prev=D2_y1.prevalence()[1],
+                               p_yhat_D2=[p_yhat_D2] * len(true_D3_s0_A1),
+                               p_yhat_D3=[p_yhat_D3] * len(true_D3_s0_A1),
                                direct=direct)
 
 

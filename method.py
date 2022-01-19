@@ -4,11 +4,12 @@ from sklearn.gaussian_process import GaussianProcessRegressor
 from sklearn.linear_model import LogisticRegression
 from sklearn.model_selection import GridSearchCV
 from sklearn.neighbors import KNeighborsRegressor
+from sklearn.base import BaseEstimator
 from sklearn.svm import LinearSVR
 import numpy as np
 import quapy as qp
 from quapy.data import LabelledCollection
-from quapy.method.aggregative import CC,ACC,PCC,PACC,EMQ,HDy, AggregativeQuantifier
+from quapy.method.aggregative import CC,ACC,PCC,PACC,EMQ,HDy, AggregativeQuantifier, training_helper
 from quapy.method.base import BaseQuantifier
 from abc import ABC, abstractmethod
 from tqdm import tqdm
@@ -65,6 +66,23 @@ def _gen_natural_samples(q0, q1, s0te, s1te, sample_size, n_repetitions):
         q1, s1te, sample_size=sample_size, n_repetitions=n_repetitions, n_jobs=-1)
     return true_s0[:, 1], true_s1[:, 1], estim_s0[:, 1], estim_s1[:, 1]
 
+
+# Unlike classes below, targets regular DP
+class WeightedEstimator(IndependenceGapEstimator):
+    def __init__(self, learner: BaseEstimator):
+        self.learner = learner
+
+    def fit(self, s0: LabelledCollection, s1: LabelledCollection):
+        self.learner, _ = training_helper(self.learner, s0+s1, ensure_probabilistic=True)
+
+    def predict(self, s0, s1):
+        Ps1_y0 = self.learner.predict_proba(s0)[:,1]
+        Ps1_y1 = self.learner.predict_proba(s1)[:,1]
+        Ps1 = np.concatenate([Ps1_y0, Ps1_y1])
+        # sum all posteriors Pr(S=1)
+        py1_s1 = Ps1_y1.sum() / Ps1.sum()
+        py1_s0 = (1-Ps1_y1).sum() / (1-Ps1).sum()
+        return py1_s1 - py1_s0
 
 class NaturalSamplingAdjustment(IndependenceGapEstimator):
 

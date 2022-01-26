@@ -30,8 +30,8 @@ def generate_tables(protocol: Protocols, outs: List[Result], table_path, regDP=F
         s_error = results.independence_signed_error(regDP)
         abs_error = results.independence_abs_error(regDP)
         sqr_error = results.independence_sqr_error(regDP)
-        qs0 = results.D3s0_abs_error()
-        qs1 = results.D3s1_abs_error()
+        qs0 = results.D3y0_abs_error()
+        qs1 = results.D3y1_abs_error()
         p01 = (abs_error<0.1)*1
         p02 = (abs_error<0.2)*1
 
@@ -84,8 +84,8 @@ def generate_tables_joindatasets(protocol: Protocols, outs: List[Result], table_
             s_error = results.independence_signed_error(regDP)
             abs_error = results.independence_abs_error(regDP)
             sqr_error = results.independence_sqr_error(regDP)
-            qs0 = results.D3s0_abs_error()
-            qs1 = results.D3s1_abs_error()
+            qs0 = results.D3y0_abs_error()
+            qs1 = results.D3y1_abs_error()
             p01 = (abs_error<0.1)*1
             p02 = (abs_error<0.2)*1
 

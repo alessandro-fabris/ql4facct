@@ -27,7 +27,7 @@ def generate_tables(protocol: Protocols, outs: List[Result], table_path, regDP=F
     for Q_name in method_names:
         results = allresults.filter('Q_name', Q_name)
         print(f'{Q_name} has {len(results)} outs')
-        s_error = results.independence_signed_error(regDP)
+        #s_error = results.independence_signed_error(regDP)
         abs_error = results.independence_abs_error(regDP)
         sqr_error = results.independence_sqr_error(regDP)
         qs0 = results.D3y0_abs_error()

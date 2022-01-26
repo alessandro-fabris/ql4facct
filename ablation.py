@@ -56,6 +56,7 @@ else:
     raise ValueError('unknown classifier name', classifier_name)
 
 plot_dir = join(plot_dir, classifier_name)
+table_dir = join(table_dir, classifier_name)
 
 
 # Define the quantifiers we would like to test

@@ -14,11 +14,6 @@ from common import Protocols
 from tabular import generate_tables_joindatasets, generate_tables
 from plot import generate_plots
 
-# undo-changes:
-# only 1 protocol
-# only 1 datasplit_repetitions
-# only 1 dataset
-# only 1 quantifier
 
 
 # TODO for regDP:
@@ -31,7 +26,7 @@ from plot import generate_plots
 
 qp.environ['SAMPLE_SIZE'] = 100
 model_selection = False
-datasplit_repetitions = 1 # 5
+datasplit_repetitions = 5
 options = {
     'nprevs': 11,
     'nreps': 10,
@@ -73,21 +68,21 @@ table_dir = join(table_dir, classifier_name)
 # Define the quantifiers we would like to test
 # --------------------------------------------
 def quantifiers():
-    #yield 'CC', CC
-    #yield 'PCC', PCC
-    #yield 'ACC', ACC
+    yield 'CC', CC
+    yield 'PCC', PCC
+    yield 'ACC', ACC
     yield 'PACC', PACC
     yield 'EMQ', EMQ
-    #yield 'HDy', HDy
-    #yield 'WE', WeightedEstimator
+    yield 'HDy', HDy
+    yield 'WE', WeightedEstimator
 
 
 # Define the datasets we would like to test
 # --------------------------------------------
 def datasets():
     yield 'adult', "datasets/adult.csv", adultcsv_loader, "gender"
-    # yield 'compas', "datasets/compas-scores-two-years.csv", compascsv_loader, "race"
-    # yield 'cc_default', "datasets/default of credit card clients.csv", ccdefaultcsv_loader, "SEX"
+    yield 'compas', "datasets/compas-scores-two-years.csv", compascsv_loader, "race"
+    yield 'cc_default', "datasets/default of credit card clients.csv", ccdefaultcsv_loader, "SEX"
 
 
 # instantiate all quantifiers x classifiers (wrapped also within model selection if requested)
@@ -122,8 +117,8 @@ if include_noSplitD2:
 else:
     options_splitD2 = [True]
 
-test_protocols = [Protocols.VAR_D1_PREV]
-# test_protocols = Protocols
+# test_protocols = [Protocols.VAR_D1_PREV]
+test_protocols = Protocols
 #
 all_results = []
 for dataset_name, data_path, loader, protected in datasets():
@@ -170,6 +165,7 @@ for dataset_name, data_path, loader, protected in datasets():
 
             outs.save(result_path)
             results.append(outs)
+
     all_results.extend(results)
 
     # -------------------------------------------------

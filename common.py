@@ -421,6 +421,7 @@ def eval_size_variations_D2_quant(D1, D2, D3, classifier, quantifier, nreps=10, 
         # M1 = deepcopy(quantifier)
         estim_M0_A1, estim_M1_A1  = [], []
         size_D2, p_yhat_D2, p_yhat_D3 = [], [], []
+        true_D2_Y0_A1, true_D2_Y1_A1 = [], []
         for sample_D2, sample_idcs in tqdm(natural_sampling_generator_varsize(D2, sample_sizes, nreps),
                                            desc='training quantifiers at size variations in D2'):
             assert sample_D2.prevalence().prod() != 0
@@ -435,19 +436,24 @@ def eval_size_variations_D2_quant(D1, D2, D3, classifier, quantifier, nreps=10, 
             size_D2.append(len(sample_D2))
             p_yhat_D2.append(len(sample_D2_y1) / (len(sample_D2_y0) + len(sample_D2_y1)))
             p_yhat_D3.append(len(D3_y1) / (len(D3_y0) + len(D3_y1)))
+            true_D2_Y0_A1.append(sample_D2_y0.prevalence()[1])
+            true_D2_Y1_A1.append(sample_D2_y1.prevalence()[1])
 
         estim_M0_A1 = np.asarray(estim_M0_A1)
         estim_M1_A1 = np.asarray(estim_M1_A1)
         true_M0_A1 = np.asarray([D3_y0.prevalence()[1]] * len(estim_M0_A1))
         true_M1_A1 = np.asarray([D3_y1.prevalence()[1]] * len(estim_M1_A1))
+        true_D2_Y0_A1 = np.asarray(true_D2_Y0_A1)
+        true_D2_Y1_A1 = np.asarray(true_D2_Y1_A1)
 
-        return true_M0_A1, estim_M0_A1, true_M1_A1, estim_M1_A1, size_D2, p_yhat_D2, p_yhat_D3
+        return true_M0_A1, estim_M0_A1, true_M1_A1, estim_M1_A1, size_D2, p_yhat_D2, p_yhat_D3, true_D2_Y0_A1, true_D2_Y1_A1
 
-    true_D3_s0_A1, estim_D3_s0_A1, true_D3_s1_A1, estim_D3_s1_A1, size_D2, p_yhat_D2, p_yhat_D3 = \
+    true_D3_s0_A1, estim_D3_s0_A1, true_D3_s1_A1, estim_D3_s1_A1, size_D2, p_yhat_D2, p_yhat_D3, true_D2_Y0_A1, true_D2_Y1_A1 = \
         vary_and_test(quantifier, D2, D2_y_hat, D3_y0, D3_y1, sample_sizes, nreps)
 
     return Result.with_columns(Protocols.VAR_D2_SIZE, true_D3_s0_A1, true_D3_s1_A1, estim_D3_s0_A1, estim_D3_s1_A1,
-                               size_D2=size_D2, p_yhat_D2=p_yhat_D2, p_yhat_D3=p_yhat_D3)
+                               size_D2=size_D2, p_yhat_D2=p_yhat_D2, p_yhat_D3=p_yhat_D3,
+                               true_D2_Y0_A1=true_D2_Y0_A1, true_D2_Y1_A1=true_D2_Y1_A1)
 
 
 def eval_size_variations_D2_estim(D1, D2, D3, classifier, estimator, nreps=10, sample_sizes=None, splitD2=True):

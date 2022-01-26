@@ -60,6 +60,7 @@ else:
     raise ValueError('unknown classifier name', classifier_name)
 
 plot_dir = join(plot_dir, classifier_name)
+table_dir = join(table_dir, classifier_name)
 
 
 # Define the quantifiers we would like to test
@@ -77,9 +78,9 @@ def quantifiers():
 # Define the datasets we would like to test
 # --------------------------------------------
 def datasets():
-    # yield 'adult', "datasets/adult.csv", adultcsv_loader, "gender"
-    yield 'compas', "datasets/compas-scores-two-years.csv", compascsv_loader, "race"
-    yield 'cc_default', "datasets/default of credit card clients.csv", ccdefaultcsv_loader, "SEX"
+    yield 'adult', "datasets/adult.csv", adultcsv_loader, "gender"
+    # yield 'compas', "datasets/compas-scores-two-years.csv", compascsv_loader, "race"
+    # yield 'cc_default', "datasets/default of credit card clients.csv", ccdefaultcsv_loader, "SEX"
 
 
 # instantiate all quantifiers x classifiers (wrapped also within model selection if requested)
@@ -114,8 +115,8 @@ if include_noSplitD2:
 else:
     options_splitD2 = [True]
 
-# test_protocols = [Protocols.VAR_D1_PREV]
-test_protocols = Protocols
+test_protocols = [Protocols.VAR_D2_SIZE]
+# test_protocols = Protocols
 #
 all_results = []
 for dataset_name, data_path, loader, protected in datasets():

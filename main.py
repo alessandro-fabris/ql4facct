@@ -14,6 +14,8 @@ from common import Protocols
 from tabular import generate_tables_joindatasets, generate_tables
 from plot import generate_plots
 
+
+
 # TODO for regDP:
 # - handle ablation study
 # - direct estimate a-la-chen
@@ -50,7 +52,7 @@ if include_noSplitD2:
 
 
 classifier_name = 'LR'
-# classifier_name = 'SVM'
+#classifier_name = 'SVM'
 
 if classifier_name=='LR':
     classifier = LogisticRegression()
@@ -60,6 +62,7 @@ else:
     raise ValueError('unknown classifier name', classifier_name)
 
 plot_dir = join(plot_dir, classifier_name)
+table_dir = join(table_dir, classifier_name)
 
 
 # Define the quantifiers we would like to test
@@ -77,7 +80,7 @@ def quantifiers():
 # Define the datasets we would like to test
 # --------------------------------------------
 def datasets():
-    # yield 'adult', "datasets/adult.csv", adultcsv_loader, "gender"
+    yield 'adult', "datasets/adult.csv", adultcsv_loader, "gender"
     yield 'compas', "datasets/compas-scores-two-years.csv", compascsv_loader, "race"
     yield 'cc_default', "datasets/default of credit card clients.csv", ccdefaultcsv_loader, "SEX"
 
@@ -162,6 +165,7 @@ for dataset_name, data_path, loader, protected in datasets():
 
             outs.save(result_path)
             results.append(outs)
+
     all_results.extend(results)
 
     # -------------------------------------------------

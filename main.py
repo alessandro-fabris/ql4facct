@@ -52,7 +52,7 @@ if include_noSplitD2:
 
 
 classifier_name = 'LR'
-# classifier_name = 'SVM'
+#classifier_name = 'SVM'
 
 if classifier_name=='LR':
     classifier = LogisticRegression()

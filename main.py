@@ -51,8 +51,8 @@ if include_noSplitD2:
     plot_dir+='-ablation'
 
 
-classifier_name = 'LR'
-#classifier_name = 'SVM'
+#classifier_name = 'LR'
+classifier_name = 'SVM'
 
 if classifier_name=='LR':
     classifier = LogisticRegression()
@@ -68,13 +68,13 @@ table_dir = join(table_dir, classifier_name)
 # Define the quantifiers we would like to test
 # --------------------------------------------
 def quantifiers():
-    yield 'CC', CC
-    yield 'PCC', PCC
+    #yield 'CC', CC
+    #yield 'PCC', PCC
     yield 'ACC', ACC
-    yield 'PACC', PACC
-    yield 'EMQ', EMQ
-    yield 'HDy', HDy
-    yield 'WE', WeightedEstimator
+    #yield 'PACC', PACC
+    #yield 'EMQ', EMQ
+    #yield 'HDy', HDy
+    #yield 'WE', WeightedEstimator
 
 
 # Define the datasets we would like to test
@@ -172,7 +172,7 @@ for dataset_name, data_path, loader, protected in datasets():
     # Generate plots and tables specific to a dataset
     # -------------------------------------------------
     for protocol in test_protocols:
-        generate_tables(protocol, results, table_path=join(table_dir, f'tab_{protocol}_{dataset_name}.tex'), regDP=options['regDP'])
+        #generate_tables(protocol, results, table_path=join(table_dir, f'tab_{protocol}_{dataset_name}.tex'), regDP=options['regDP'])
         generate_plots(protocol, results, plotdir=join(plot_dir, dataset_name), regDP=options['regDP'])
 
 # -------------------------------------------------

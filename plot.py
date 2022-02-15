@@ -249,16 +249,16 @@ def plot_prot2prev_clf(results:Result, prefix, clf, plotdir='./plots'):
     x_means = [x[digitized == i].mean() for i in range(1, len(bins)+1)]
 
     series = [
-        (f'{clf} accuracy', get_series(results, 'accs', digitized, bins)),
-        (f'{clf} $F_1$', get_series(results, 'f1s', digitized, bins)),
-        (f'SLD accuracy', get_series(results, 'emq_accs', digitized, bins)),
-        (f'SLD $F_1$', get_series(results, 'emq_f1s', digitized, bins)),
+        (f'{clf} accuracy', get_series(results, 'accs', digitized, bins), '-', '^'),
+        (f'{clf} $F_1$', get_series(results, 'f1s', digitized, bins), '-', '^'),
+        (f'SLD accuracy', get_series(results, 'emq_accs', digitized, bins), '-', '^'),
+        (f'SLD $F_1$', get_series(results, 'emq_f1s', digitized, bins), '-', '^'),
     ]
     quantifiers = results.data.columns[6:-4].values
     for q_name in quantifiers:
         q_means, q_std = get_errors(results, q_name, 'trueD3sample', digitized, bins)
         q_name = q_name.replace('EMQ','SLD')
-        series.append((f'{q_name} MAE', (q_means, q_std)))
+        series.append((f'{q_name} MAE', (q_means, q_std), '--', 'v'))
 
     d3prev = np.mean(results.data['trueD3sample'].values)
     # d3prevlabel = f"{prefix.replace('2', '3')} prev"
@@ -283,16 +283,16 @@ def plot_prot3prev_clf(results:Result, prefix, clf, plotdir='./plots'):
     x_means = [x[digitized == i].mean() for i in range(1, len(bins)+1)]
 
     series = [
-        (f'{clf} accuracy', get_series(results, 'accs', digitized, bins)),
-        (f'{clf} $F_1$', get_series(results, 'f1s', digitized, bins)),
-        (f'SLD accuracy', get_series(results, 'emq_accs', digitized, bins)),
-        (f'SLD $F_1$', get_series(results, 'emq_f1s', digitized, bins)),
+        (f'{clf} accuracy', get_series(results, 'accs', digitized, bins), '-', '^'),
+        (f'{clf} $F_1$', get_series(results, 'f1s', digitized, bins), '-', '^'),
+        (f'SLD accuracy', get_series(results, 'emq_accs', digitized, bins), '-', '^'),
+        (f'SLD $F_1$', get_series(results, 'emq_f1s', digitized, bins), '-', '^'),
     ]
     quantifiers = results.data.columns[6:-4].values
     for q_name in quantifiers:
         q_means, q_std = get_errors(results, q_name, 'trueD3sample', digitized, bins)
         q_name = q_name.replace('EMQ', 'SLD') 
-        series.append((f'{q_name} MAE', (q_means, q_std)))
+        series.append((f'{q_name} MAE', (q_means, q_std), '--', 'v'))
 
     d2prev = np.mean(results.data['trueD2sample'].values)
     # d2prevlabel = f"{prefix.replace('3','2')} prev"
@@ -310,10 +310,11 @@ def plot_prot3prev_clf(results:Result, prefix, clf, plotdir='./plots'):
 
 def gen_plot(x_means, series, title, xlabel='', ylabel='', path=None, vline=None, vlinelabel=None):
     plt.figure()
-    for label, (means,stds) in series:
+    for label, (means,stds), linestyle, marker in series:
         means = np.asarray(means)
         stds = np.asarray(stds)
-        plt.errorbar(x_means, means, label=label)
+        # add marker=marker to show the markers ('^' for accuracies, 'v' for errors)
+        plt.errorbar(x_means, means, label=label, linestyle=linestyle)
         plt.fill_between(x_means, means - stds, means + stds, alpha=0.25)
     if vline is not None:
         plt.vlines(vline, -0.1, 1, colors='k', linestyles='dotted', label=vlinelabel)

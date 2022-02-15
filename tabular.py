@@ -53,21 +53,23 @@ def generate_tables_joindatasets(protocol: Protocols, outs: List[Result], table_
     allresults.data['Q_name'] = allresults.data['Q_name'].str.replace('EMQ', 'SLD')
     method_names = allresults.data['Q_name'].unique()
     datasets = allresults.data['dataset'].unique()
-    dataset2name = {'cc_default_SEX': 'CC-Default',
+    dataset2name = {'cc_default_SEX': 'CreditCard',
                     'compas_race': 'COMPAS',
                     'adult_gender': 'Adult'}
 
-    QerrMAED3s0 = 'MAE$_{D_3^0}$'
-    QerrMAED3s1 = 'MAE$_{D_3^1}$'
-    Pr01 = '$P(\mathrm{MAE}<0.1)$'
-    Pr02 = '$P(\mathrm{MAE}<0.2)$'
+    QerrMAED3s0 = '$\downarrow$ MAE$_{D_3^0}$'
+    QerrMAED3s1 = '$\downarrow$ MAE$_{D_3^1}$'
+    Pr01 = '$\\uparrow$ $P(\mathrm{AE}<0.1)$'
+    Pr02 = '$\\uparrow$ $P(\mathrm{AE}<0.2)$'
+    MAE = '$\downarrow$ MAE'
+    MSE = '$\downarrow$ MSE'
     tables = []
     if incl_interm:
-        columns = ['MAE', 'MSE', QerrMAED3s0, QerrMAED3s1, Pr01, Pr02]
-        lower_better_cols = ['MAE', 'MSE', QerrMAED3s0, QerrMAED3s1]
+        columns = [MAE, MSE, QerrMAED3s0, QerrMAED3s1, Pr01, Pr02]
+        lower_better_cols = [MAE, MSE, QerrMAED3s0, QerrMAED3s1]
     else:
-        columns = ['MAE', 'MSE', Pr01, Pr02]
-        lower_better_cols = ['MAE', 'MSE']
+        columns = [MAE, MSE, Pr01, Pr02]
+        lower_better_cols = [MAE, MSE]
     for ds in datasets:
         row_names = method_names
         table = Table(columns, row_names,
@@ -91,8 +93,8 @@ def generate_tables_joindatasets(protocol: Protocols, outs: List[Result], table_
             p02 = (abs_error<0.2)*1
 
             row_name = Q_name
-            table.add('MAE', row_name, values=abs_error)
-            table.add('MSE', row_name, values=sqr_error)
+            table.add(MAE, row_name, values=abs_error)
+            table.add(MSE, row_name, values=sqr_error)
             if incl_interm:
                 table.add(QerrMAED3s0, row_name, values=qs0)
                 table.add(QerrMAED3s1, row_name, values=qs1)
@@ -208,7 +210,15 @@ class Table:
             ranked_cols_idx = filled_cols_idx[np.argsort(col_means)]
 
             self.map['rank'][i, ranked_cols_idx] = np.arange(1, len(filled_cols_idx)+1)
-            
+
+    def _addlikebest(self):
+        for i in range(self.nbenchmarks):
+            best_method_id = np.argwhere(self.map['rank'][i]==1)
+            best_value = self.map['mean'][i,best_method_id]
+            for j in range(self.nmethods):
+                this_value = self.map['mean'][i, j]
+                self.map['asbest'][i,j] = best_value==this_value
+
     def _addcolor(self):
         for i in range(self.nbenchmarks):
             filled_cols_idx = np.argwhere(self.map['fill'][i]).flatten()
@@ -275,10 +285,12 @@ class Table:
         self._addmap('std', dtype=float, func=np.std)
         self._addmap('nobs', dtype=float, func=len)
         self._addmap('rank', dtype=int, func=None)
+        self._addmap('asbest', dtype=bool, func=None)
         self._addmap('color', dtype=object, func=None)
         self._addmap('ttest', dtype=object, func=None)
         self._addmap('latex', dtype=object, func=None)
         self._addrank()
+        self._addlikebest()
         self._addcolor()
         self._add_statistical_test()
         if self.add_average:
@@ -353,7 +365,8 @@ class Table:
             l = l.replace(' 0.', '.')
 
         isbest = self.map['rank'][i,j] == 1
-        if isbest:
+        asbest = self.map['asbest'][i,j]
+        if isbest or asbest:
             l = "\\textbf{"+l.strip()+"}"
 
         stat = ''

@@ -45,8 +45,8 @@ if include_noSplitD2:
     plot_dir+='-ablation'
 
 
-#classifier_name = 'LR'
-classifier_name = 'SVM'
+classifier_name = 'LR'
+#classifier_name = 'SVM'
 
 if classifier_name=='LR':
     classifier = LogisticRegression()
@@ -108,7 +108,7 @@ else:
     options_splitD2 = [True]
 
 #test_protocols = [Protocols.VAR_D1_PREVFLIP, Protocols.VAR_D2_SIZE]
-#test_protocols = [Protocols.VAR_D2_PREV]
+#test_protocols = [Protocols.VAR_D1_PREVFLIP]
 test_protocols = Protocols
 #
 all_results = []
@@ -162,7 +162,7 @@ for dataset_name, data_path, loader, protected in datasets():
     # Generate plots and tables specific to a dataset
     # -------------------------------------------------
     for protocol in test_protocols:
-        generate_tables(protocol, results, table_path=join(table_dir, f'tab_{protocol}_{dataset_name}.tex'), regDP=options['regDP'])
+        #generate_tables(protocol, results, table_path=join(table_dir, f'tab_{protocol}_{dataset_name}.tex'), regDP=options['regDP'])
         generate_plots(protocol, results, plotdir=join(plot_dir, dataset_name), regDP=options['regDP'])
 
 # -------------------------------------------------

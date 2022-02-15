@@ -102,7 +102,7 @@ def plot_prot1flip(results:Result, plotdir='./plots', regDP=False):
 
     _boxplot_from_dict(vary_prev_D1,
                        os.path.join(plotdir, 'protD1_vary_prev_d1_flip.pdf'),
-                       xlab='$\Delta(s)$')
+                       xlab='$\delta$')
 
 
 def plot_prot2size(results:Result, plotdir='./plots', regDP=False):

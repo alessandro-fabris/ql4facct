@@ -51,8 +51,8 @@ if include_noSplitD2:
     plot_dir+='-ablation'
 
 
-#classifier_name = 'LR'
-classifier_name = 'SVM'
+classifier_name = 'LR'
+#classifier_name = 'SVM'
 
 if classifier_name=='LR':
     classifier = LogisticRegression()
@@ -68,12 +68,12 @@ table_dir = join(table_dir, classifier_name)
 # Define the quantifiers we would like to test
 # --------------------------------------------
 def quantifiers():
-    #yield 'CC', CC
-    #yield 'PCC', PCC
+    yield 'CC', CC
+    yield 'PCC', PCC
     yield 'ACC', ACC
-    #yield 'PACC', PACC
-    #yield 'EMQ', EMQ
-    #yield 'HDy', HDy
+    yield 'PACC', PACC
+    yield 'EMQ', EMQ
+    yield 'HDy', HDy
     #yield 'WE', WeightedEstimator
 
 
@@ -117,8 +117,8 @@ if include_noSplitD2:
 else:
     options_splitD2 = [True]
 
-# test_protocols = [Protocols.VAR_D1_PREV]
-test_protocols = Protocols
+test_protocols = [Protocols.VAR_D1_PREVFLIP]
+#test_protocols = Protocols
 #
 all_results = []
 for dataset_name, data_path, loader, protected in datasets():

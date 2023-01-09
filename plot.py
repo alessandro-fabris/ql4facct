@@ -45,6 +45,8 @@ def generate_plots(protocol: Protocols, outs:List[Result], plotdir='./plots', re
 
     results = Result.concat(outs).select_protocol(protocol)
     results.data['Q_name'] = results.data['Q_name'].str.replace('EMQ', 'SLD')
+    results.data['Q_name'] = results.data['Q_name'].str.replace('MLPE\(LR\)', 'MLPE')
+    results.data['Q_name'] = results.data['Q_name'].str.replace('MLPE\(SVM\)', 'MLPE')
 
     if protocol == Protocols.VAR_D1_PREV:
         plot_prot1prev(results, plotdir, regDP)
@@ -75,7 +77,8 @@ def plot_prot1prev(results: Result, plotdir='./plots', regDP=False):
         # indep_gap = np.around(indep_gap, decimals=1)
         # vary_prev_D1["x_axis"].extend(list(indep_gap))
 
-
+        # if Q_name.startswith('MLPE'):
+        #     Q_name='MLPE'
         vary_prev_D1["quant"].extend([Q_name] * len(err))
         vary_prev_D1["y_axis"].extend(err)
 
@@ -102,7 +105,7 @@ def plot_prot1flip(results:Result, plotdir='./plots', regDP=False):
 
     _boxplot_from_dict(vary_prev_D1,
                        os.path.join(plotdir, 'protD1_vary_prev_d1_flip.pdf'),
-                       xlab='$\delta$')
+                       xlab='$\delta_{h}^{S}$')
 
 
 def plot_prot2size(results:Result, plotdir='./plots', regDP=False):

@@ -41,7 +41,7 @@ def prevalence_from_labels(labels, n_classes):
         raise ValueError(f'param labels does not seem to be a ndarray of label predictions')
     unique, counts = np.unique(labels, return_counts=True)
     by_class = defaultdict(lambda:0, dict(zip(unique, counts)))
-    prevalences = np.asarray([by_class[ci] for ci in range(n_classes)], dtype=np.float)
+    prevalences = np.asarray([by_class[ci] for ci in range(n_classes)], dtype=float)
     prevalences /= prevalences.sum()
     return prevalences
 

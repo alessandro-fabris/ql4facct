@@ -14,11 +14,11 @@ from quapy.data import LabelledCollection
 from quapy import functional as F
 from quapy.evaluation import evaluate
 from quapy.model_selection import GridSearchQ
-from . import neural
+# from . import neural
 from .base import BaseQuantifier
 from quapy.method.aggregative import CC, ACC, PCC, PACC, HDy, EMQ
 
-QuaNet = neural.QuaNetTrainer
+# QuaNet = neural.QuaNetTrainer
 
 
 class Ensemble(BaseQuantifier):

@@ -46,7 +46,7 @@ if include_noSplitD2:
 
 
 classifier_name = 'LR'
-#classifier_name = 'SVM'
+# classifier_name = 'SVM'
 
 if classifier_name=='LR':
     classifier = LogisticRegression()
@@ -107,9 +107,9 @@ if include_noSplitD2:
 else:
     options_splitD2 = [True]
 
-#test_protocols = [Protocols.VAR_D1_PREVFLIP, Protocols.VAR_D2_SIZE]
-#test_protocols = [Protocols.VAR_D1_PREVFLIP]
-test_protocols = Protocols
+# test_protocols = [Protocols.VAR_D1_PREVFLIP, Protocols.VAR_D2_SIZE]
+test_protocols = [Protocols.VAR_D1_PREVFLIP]
+# test_protocols = Protocols
 #
 all_results = []
 for dataset_name, data_path, loader, protected in datasets():

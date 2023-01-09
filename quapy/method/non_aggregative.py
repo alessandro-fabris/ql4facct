@@ -5,11 +5,12 @@ from .base import BaseQuantifier
 
 class MaximumLikelihoodPrevalenceEstimation(BaseQuantifier):
 
-    def __init__(self, **kwargs):
+    def __init__(self, *args, **kwargs):
         pass
 
     def fit(self, data: LabelledCollection, *args):
         self.estimated_prevalence = data.prevalence()
+        return self
 
     def quantify(self, documents, *args):
         return self.estimated_prevalence

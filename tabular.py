@@ -51,6 +51,9 @@ def generate_tables_joindatasets(protocol: Protocols, outs: List[Result], table_
 
     allresults = Result.concat(outs).select_protocol(protocol)
     allresults.data['Q_name'] = allresults.data['Q_name'].str.replace('EMQ', 'SLD')
+    allresults.data['Q_name'] = allresults.data['Q_name'].str.replace('MLPE\(LR\)', 'MLPE')
+    allresults.data['Q_name'] = allresults.data['Q_name'].str.replace('MLPE\(SVM\)', 'MLPE')
+
     method_names = allresults.data['Q_name'].unique()
     datasets = allresults.data['dataset'].unique()
     dataset2name = {'cc_default_SEX': 'CreditCard',

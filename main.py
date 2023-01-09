@@ -11,6 +11,7 @@ from common import *
 from method import *
 from quapy.method.aggregative import CC, PCC, ACC, PACC, EMQ, HDy
 from common import Protocols
+from quapy.method.non_aggregative import MaximumLikelihoodPrevalenceEstimation
 from tabular import generate_tables_joindatasets, generate_tables
 from plot import generate_plots
 
@@ -51,8 +52,8 @@ if include_noSplitD2:
     plot_dir+='-ablation'
 
 
-classifier_name = 'LR'
-#classifier_name = 'SVM'
+# classifier_name = 'LR'
+classifier_name = 'SVM'
 
 if classifier_name=='LR':
     classifier = LogisticRegression()
@@ -74,6 +75,7 @@ def quantifiers():
     yield 'PACC', PACC
     yield 'EMQ', EMQ
     yield 'HDy', HDy
+    yield 'MLPE', MaximumLikelihoodPrevalenceEstimation
     #yield 'WE', WeightedEstimator
 
 
@@ -117,8 +119,8 @@ if include_noSplitD2:
 else:
     options_splitD2 = [True]
 
-test_protocols = [Protocols.VAR_D1_PREVFLIP]
-#test_protocols = Protocols
+# test_protocols = [Protocols.VAR_D1_PREVFLIP]
+test_protocols = Protocols
 #
 all_results = []
 for dataset_name, data_path, loader, protected in datasets():
